@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwasthyaMitra - AI Healthcare Assistant for Bharat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#" class="nav-logo">
+                <div class="logo-icon">
+                    <i class="fas fa-heartbeat"></i>
+                </div>
+                <span class="logo-text">SwasthyaMitra</span>
+            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="#home" data-i18n="nav_home">Home</a>
+                <a href="#about" data-i18n="nav_about">About</a>
+                <a href="#services" data-i18n="nav_services">Services</a>
+                <a href="#schemes" data-i18n="nav_schemes">Govt Schemes</a>
+                <a href="#team" data-i18n="nav_team">Team</a>
+            </div>
+            <div class="nav-right">
+                <div class="lang-selector" id="langSelector">
+                    <button class="lang-toggle" onclick="toggleLangMenu()">
+                        <i class="fas fa-globe"></i>
+                        <span id="currentLang">EN</span>
+                        <i class="fas fa-chevron-down" style="font-size:10px"></i>
+                    </button>
+                    <div class="lang-dropdown" id="langDropdown">
+                        <button onclick="changeLang('en','EN')">English</button>
+                        <button onclick="changeLang('hi','HI')">हिन्दी</button>
+                        <button onclick="changeLang('ta','TA')">தமிழ்</button>
+                        <button onclick="changeLang('te','TE')">తెలుగు</button>
+                        <button onclick="changeLang('kn','KN')">ಕನ್ನಡ</button>
+                        <button onclick="changeLang('ml','ML')">മലയാളം</button>
+                        <button onclick="changeLang('bn','BN')">বাংলা</button>
+                        <button onclick="changeLang('mr','MR')">मराठी</button>
+                        <button onclick="changeLang('gu','GU')">ગુજરાતી</button>
+                    </div>
+                </div>
+                <button class="nav-cta" onclick="showLoginModal()" data-i18n="nav_login">Get Started</button>
+            </div>
+            <button class="nav-hamburger" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-bg">
+            <div class="hero-circles">
+                <div class="circle c1"></div>
+                <div class="circle c2"></div>
+                <div class="circle c3"></div>
+                <div class="circle c4"></div>
+            </div>
+            <div class="hero-gradient-orb"></div>
+        </div>
+        <div class="container hero-grid">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <span class="badge-dot"></span>
+                    <span data-i18n="hero_badge">Powered by AI | Made in India</span>
+                </div>
+                <h1 class="hero-title">
+                    <span data-i18n="hero_title_1">Your AI Health</span><br>
+                    <span data-i18n="hero_title_2">Companion for</span>
+                    <span class="hero-highlight" data-i18n="hero_title_3">Bharat</span>
+                    <span class="hero-icon-pill">
+                        <i class="fas fa-heartbeat"></i>
+                        <i class="fas fa-microphone"></i>
+                        <i class="fas fa-file-medical-alt"></i>
+                    </span>
+                </h1>
+                <p class="hero-subtitle" data-i18n="hero_subtitle">
+                    Breaking language barriers in healthcare. Get lab reports explained, ask health questions by voice,
+                    and enable doctors with AI-powered documentation — all in your native language.
+                </p>
+                <div class="hero-buttons">
+                    <button class="btn-primary" onclick="showLoginModal()" data-i18n="hero_cta_1">Get Started Free</button>
+                    <button class="btn-ghost" onclick="scrollToSection('services')" data-i18n="hero_cta_2">Explore Services</button>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="phone-mockup">
+                    <div class="phone-notch"></div>
+                    <div class="phone-screen">
+                        <div class="phone-header">
+                            <span><i class="fas fa-heartbeat"></i> SwasthyaMitra</span>
+                            <i class="fas fa-microphone"></i>
+                        </div>
+                        <div class="phone-chat">
+                            <div class="chat-bubble bot">
+                                <span>Namaste! How can I help you today?</span>
+                            </div>
+                            <div class="chat-bubble user">
+                                <span>Mera lab report samjhao</span>
+                            </div>
+                            <div class="chat-bubble bot">
+                                <span>Sure! Upload your report photo...</span>
+                            </div>
+                            <div class="chat-bubble user">
+                                <span>&#128248; report.jpg</span>
+                            </div>
+                            <div class="chat-bubble bot typing">
+                                <div class="typing-dots"><span></span><span></span><span></span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="floating-card fc1">
+                    <i class="fas fa-language"></i>
+                    <span>8+ Languages</span>
+                </div>
+                <div class="floating-card fc2">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>HIPAA Secure</span>
+                </div>
+            </div>
+        </div>
+        <div class="hero-stats-bar">
+            <div class="container">
+                <div class="stats-inner">
+                    <div class="stat-item">
+                        <span class="stat-number">8+</span>
+                        <span class="stat-label" data-i18n="stat_languages">Indian Languages</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-number">3</span>
+                        <span class="stat-label" data-i18n="stat_services">AI Services</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-number">100%</span>
+                        <span class="stat-label" data-i18n="stat_free">Free for Citizens</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-number">24/7</span>
+                        <span class="stat-label">Always Available</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Initiative Banner -->
+    <section class="initiative-banner">
+        <div class="container">
+            <div class="initiative-content">
+                <div class="initiative-left">
+                    <div class="pm-photo">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Modi_2015.jpg/220px-Modi_2015.jpg" alt="PM Modi" onerror="this.parentElement.innerHTML='<div class=\'pm-fallback\'>PM</div>'">
+                    </div>
+                    <div class="initiative-text">
+                        <h3 data-i18n="initiative_title">Digital India | Ayushman Bharat</h3>
+                        <p data-i18n="initiative_subtitle">Empowering 1.4 Billion Indians with AI-Powered Healthcare</p>
+                    </div>
+                </div>
+                <div class="initiative-flag">
+                    <div class="flag-bar saffron"></div>
+                    <div class="flag-bar white">&#9784;</div>
+                    <div class="flag-bar green"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="about-section" id="about">
+        <div class="container">
+            <div class="section-label">
+                <span class="label-dot"></span>
+                <span data-i18n="about_badge">About SwasthyaMitra</span>
+            </div>
+            <h2 class="section-heading" data-i18n="about_title">AI Healthcare,<br>Built for Every Indian</h2>
+            <div class="about-bento">
+                <div class="bento-main">
+                    <div class="bento-dark-card">
+                        <div class="dark-card-badge">
+                            <span class="live-dot"></span>
+                            <span>Serving All of Bharat</span>
+                        </div>
+                        <div class="india-map-visual">
+                            <svg viewBox="0 0 400 450" fill="none">
+                                <path d="M200 50 L280 80 L320 140 L350 200 L340 260 L300 320 L260 370 L220 400 L200 420 L180 400 L140 370 L100 320 L60 260 L50 200 L80 140 L120 80 Z"
+                                      stroke="rgba(255,107,0,0.4)" stroke-width="1.5" fill="rgba(255,107,0,0.05)" stroke-dasharray="4,4"/>
+                                <circle cx="200" cy="150" r="4" fill="#FF6B00"><animate attributeName="r" values="3;7;3" dur="2s" repeatCount="indefinite"/></circle>
+                                <circle cx="150" cy="250" r="4" fill="#138808"><animate attributeName="r" values="3;7;3" dur="2s" repeatCount="indefinite" begin="0.5s"/></circle>
+                                <circle cx="250" cy="200" r="4" fill="#FF6B00"><animate attributeName="r" values="3;7;3" dur="2s" repeatCount="indefinite" begin="1s"/></circle>
+                                <circle cx="180" cy="350" r="4" fill="#138808"><animate attributeName="r" values="3;7;3" dur="2s" repeatCount="indefinite" begin="1.5s"/></circle>
+                                <circle cx="280" cy="280" r="4" fill="#FF6B00"><animate attributeName="r" values="3;7;3" dur="2s" repeatCount="indefinite" begin="0.7s"/></circle>
+                                <circle cx="120" cy="180" r="3" fill="#138808"><animate attributeName="r" values="2;5;2" dur="2s" repeatCount="indefinite" begin="1.2s"/></circle>
+                                <circle cx="230" cy="300" r="3" fill="#FF6B00"><animate attributeName="r" values="2;5;2" dur="2s" repeatCount="indefinite" begin="0.3s"/></circle>
+                            </svg>
+                        </div>
+                        <div class="dark-card-stats">
+                            <div class="dc-stat"><span class="dc-num">28+</span><span class="dc-label" data-i18n="about_s1">States Covered</span></div>
+                            <div class="dc-stat"><span class="dc-num">24/7</span><span class="dc-label" data-i18n="about_s2">Available Always</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bento-side">
+                    <div class="bento-mission-card">
+                        <h3>Our Mission</h3>
+                        <p data-i18n="about_desc">
+                            SwasthyaMitra bridges the gap between advanced healthcare and the common citizen.
+                            Whether you're a patient in a remote village or a doctor in a busy city hospital,
+                            our AI assistant speaks your language and understands your needs.
+                        </p>
+                    </div>
+                    <div class="bento-features-grid">
+                        <div class="bento-feature">
+                            <div class="bf-icon"><i class="fas fa-microphone"></i></div>
+                            <span data-i18n="about_f1">Voice-First Design</span>
+                        </div>
+                        <div class="bento-feature">
+                            <div class="bf-icon"><i class="fas fa-language"></i></div>
+                            <span data-i18n="about_f2">8+ Indian Languages</span>
+                        </div>
+                        <div class="bento-feature">
+                            <div class="bf-icon"><i class="fas fa-mobile-alt"></i></div>
+                            <span data-i18n="about_f3">Works on Basic Phones</span>
+                        </div>
+                        <div class="bento-feature">
+                            <div class="bf-icon"><i class="fas fa-shield-alt"></i></div>
+                            <span data-i18n="about_f4">Data Privacy & Security</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="flow-section" id="flow">
+        <div class="container">
+            <div class="section-label">
+                <span class="label-dot"></span>
+                <span data-i18n="flow_badge">How It Works</span>
+            </div>
+            <h2 class="section-heading center" data-i18n="flow_title">Simple Steps to Get Started</h2>
+            <div class="flow-grid">
+                <div class="flow-card">
+                    <div class="flow-icon-box"><i class="fas fa-mobile-alt"></i></div>
+                    <div class="flow-number">01</div>
+                    <h3 data-i18n="flow_s1_title">Enter Phone Number</h3>
+                    <p data-i18n="flow_s1_desc">Sign up with just your mobile number. No email or password needed.</p>
+                </div>
+                <div class="flow-card">
+                    <div class="flow-icon-box"><i class="fas fa-sms"></i></div>
+                    <div class="flow-number">02</div>
+                    <h3 data-i18n="flow_s2_title">Verify with OTP</h3>
+                    <p data-i18n="flow_s2_desc">Receive a one-time password on your phone. Quick & secure verification.</p>
+                </div>
+                <div class="flow-card">
+                    <div class="flow-icon-box"><i class="fas fa-user-tag"></i></div>
+                    <div class="flow-number">03</div>
+                    <h3 data-i18n="flow_s3_title">Select Your Role</h3>
+                    <p data-i18n="flow_s3_desc">Choose Patient or Doctor. Each role gets tailored features and dashboard.</p>
+                </div>
+                <div class="flow-card">
+                    <div class="flow-icon-box"><i class="fas fa-language"></i></div>
+                    <div class="flow-number">04</div>
+                    <h3 data-i18n="flow_s4_title">Choose Language</h3>
+                    <p data-i18n="flow_s4_desc">Select your preferred language. The entire app adapts to your choice.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section class="services-section" id="services">
+        <div class="container">
+            <div class="section-label">
+                <span class="label-dot"></span>
+                <span data-i18n="services_badge">Our Services</span>
+            </div>
+            <h2 class="section-heading" data-i18n="services_title">Three Powerful AI<br>Healthcare Tools</h2>
+            <p class="section-desc" data-i18n="services_subtitle">
+                Each tool is designed for a specific healthcare need, accessible to both patients and doctors.
+            </p>
+
+            <div class="services-grid">
+                <!-- Lab Samjho -->
+                <div class="service-card" id="labSamjho">
+                    <div class="svc-top">
+                        <div class="svc-icon-box lab"><i class="fas fa-file-medical-alt"></i></div>
+                        <span class="svc-num">(01)</span>
+                    </div>
+                    <h3 class="svc-name" data-i18n="svc_lab_title">Lab Samjho</h3>
+                    <p class="svc-tagline" data-i18n="svc_lab_tagline">Lab Report Interpreter</p>
+                    <p class="svc-desc" data-i18n="svc_lab_desc">
+                        Upload a photo of your lab report. Our AI reads it, understands every value,
+                        and explains what it means in your language — with audio too!
+                    </p>
+                    <div class="svc-tags">
+                        <span data-i18n="svc_lab_f1">Photo Upload</span>
+                        <span data-i18n="svc_lab_f2">OCR Reading</span>
+                        <span data-i18n="svc_lab_f3">AI Analysis</span>
+                        <span data-i18n="svc_lab_f4">Audio Summary</span>
+                    </div>
+                    <div class="svc-access">
+                        <span class="access-pill patient"><i class="fas fa-user"></i> <span data-i18n="role_patient">Patient</span></span>
+                        <span class="access-pill doctor"><i class="fas fa-user-md"></i> <span data-i18n="role_doctor">Doctor</span></span>
+                    </div>
+                    <div class="svc-arrow"><i class="fas fa-arrow-right"></i></div>
+                </div>
+
+                <!-- Care Guide -->
+                <div class="service-card featured" id="careGuide">
+                    <div class="svc-top">
+                        <div class="svc-icon-box care"><i class="fas fa-microphone-alt"></i></div>
+                        <span class="svc-num">(02)</span>
+                    </div>
+                    <h3 class="svc-name" data-i18n="svc_care_title">Care Guide</h3>
+                    <p class="svc-tagline" data-i18n="svc_care_tagline">Voice Health Q&A</p>
+                    <p class="svc-desc" data-i18n="svc_care_desc">
+                        Just speak your health question in any Indian language. Our AI listens, understands,
+                        and responds with helpful guidance — by voice in your language.
+                    </p>
+                    <div class="svc-tags">
+                        <span data-i18n="svc_care_f1">Voice Input</span>
+                        <span data-i18n="svc_care_f2">Multi-Language</span>
+                        <span data-i18n="svc_care_f3">AI Response</span>
+                        <span data-i18n="svc_care_f4">Audio Reply</span>
+                    </div>
+                    <div class="svc-access">
+                        <span class="access-pill patient"><i class="fas fa-user"></i> <span data-i18n="role_patient">Patient</span></span>
+                    </div>
+                    <div class="svc-arrow"><i class="fas fa-arrow-right"></i></div>
+                </div>
+
+                <!-- MedScribe -->
+                <div class="service-card" id="medScribe">
+                    <div class="svc-top">
+                        <div class="svc-icon-box med"><i class="fas fa-notes-medical"></i></div>
+                        <span class="svc-num">(03)</span>
+                    </div>
+                    <h3 class="svc-name" data-i18n="svc_med_title">MedScribe</h3>
+                    <p class="svc-tagline" data-i18n="svc_med_tagline">Doctor Documentation AI</p>
+                    <p class="svc-desc" data-i18n="svc_med_desc">
+                        Record your consultation. AI generates SOAP notes, extracts medical entities,
+                        and creates patient instructions in the patient's native language.
+                    </p>
+                    <div class="svc-tags">
+                        <span data-i18n="svc_med_f1">Audio Recording</span>
+                        <span data-i18n="svc_med_f2">SOAP Notes</span>
+                        <span data-i18n="svc_med_f3">Entity Extraction</span>
+                        <span data-i18n="svc_med_f4">Patient Instructions</span>
+                    </div>
+                    <div class="svc-access">
+                        <span class="access-pill doctor"><i class="fas fa-user-md"></i> <span data-i18n="role_doctor">Doctor</span></span>
+                    </div>
+                    <div class="svc-arrow"><i class="fas fa-arrow-right"></i></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Role Access Section -->
+    <section class="roles-section">
+        <div class="container">
+            <div class="section-label">
+                <span class="label-dot"></span>
+                <span data-i18n="roles_badge">Who Can Use</span>
+            </div>
+            <h2 class="section-heading center" data-i18n="roles_title">Designed for Everyone</h2>
+            <div class="roles-grid">
+                <div class="role-card patient-card">
+                    <div class="role-icon-wrap"><i class="fas fa-user"></i></div>
+                    <h3 data-i18n="role_patient_title">For Patients</h3>
+                    <p class="role-desc" data-i18n="role_patient_desc">Access healthcare guidance in your own language, anytime, anywhere.</p>
+                    <ul class="role-list">
+                        <li><i class="fas fa-check-circle"></i> <span data-i18n="rp_f1">Lab Samjho - Understand lab reports</span></li>
+                        <li><i class="fas fa-check-circle"></i> <span data-i18n="rp_f2">Care Guide - Ask health questions by voice</span></li>
+                        <li><i class="fas fa-check-circle"></i> <span data-i18n="rp_f3">View history of all interactions</span></li>
+                        <li><i class="fas fa-check-circle"></i> <span data-i18n="rp_f4">Government health scheme information</span></li>
+                    </ul>
+                    <button class="btn-primary" onclick="showLoginModal('patient')" data-i18n="role_patient_cta">Join as Patient</button>
+                </div>
+                <div class="role-card doctor-card">
+                    <div class="role-icon-wrap"><i class="fas fa-user-md"></i></div>
+                    <h3 data-i18n="role_doctor_title">For Doctors</h3>
+                    <p class="role-desc" data-i18n="role_doctor_desc">Reduce documentation burden and communicate better with patients.</p>
+                    <ul class="role-list">
+                        <li><i class="fas fa-check-circle"></i> <span data-i18n="rd_f1">MedScribe - AI consultation notes</span></li>
+                        <li><i class="fas fa-check-circle"></i> <span data-i18n="rd_f2">Lab Samjho - Quick report analysis</span></li>
+                        <li><i class="fas fa-check-circle"></i> <span data-i18n="rd_f3">Patient instructions in native language</span></li>
+                        <li><i class="fas fa-check-circle"></i> <span data-i18n="rd_f4">Medical entity extraction</span></li>
+                    </ul>
+                    <button class="btn-primary" onclick="showLoginModal('doctor')" data-i18n="role_doctor_cta">Join as Doctor</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Government Schemes -->
+    <section class="schemes-section" id="schemes">
+        <div class="container">
+            <div class="section-label">
+                <span class="label-dot"></span>
+                <span data-i18n="schemes_badge">Government Initiatives</span>
+            </div>
+            <h2 class="section-heading" data-i18n="schemes_title">Healthcare Schemes<br>for Every Citizen</h2>
+            <p class="section-desc" data-i18n="schemes_subtitle">
+                Know your rights. Access government healthcare schemes designed for your welfare.
+            </p>
+            <div class="schemes-grid">
+                <div class="scheme-card">
+                    <div class="scheme-icon"><i class="fas fa-hospital"></i></div>
+                    <h3>Ayushman Bharat (PM-JAY)</h3>
+                    <p data-i18n="scheme_1_desc">Free health coverage up to Rs. 5 lakh per family per year for secondary & tertiary care hospitalization.</p>
+                    <span class="scheme-tag" data-i18n="scheme_1_tag">Health Insurance</span>
+                </div>
+                <div class="scheme-card">
+                    <div class="scheme-icon"><i class="fas fa-baby"></i></div>
+                    <h3>Janani Suraksha Yojana</h3>
+                    <p data-i18n="scheme_2_desc">Cash assistance for institutional delivery to reduce maternal and infant mortality.</p>
+                    <span class="scheme-tag" data-i18n="scheme_2_tag">Maternity Care</span>
+                </div>
+                <div class="scheme-card">
+                    <div class="scheme-icon"><i class="fas fa-pills"></i></div>
+                    <h3>PM Bhartiya Janaushadhi</h3>
+                    <p data-i18n="scheme_3_desc">Quality generic medicines at affordable prices through dedicated stores across India.</p>
+                    <span class="scheme-tag" data-i18n="scheme_3_tag">Affordable Medicine</span>
+                </div>
+                <div class="scheme-card">
+                    <div class="scheme-icon"><i class="fas fa-heartbeat"></i></div>
+                    <h3>National Health Mission</h3>
+                    <p data-i18n="scheme_4_desc">Strengthening healthcare delivery across rural and urban India with focus on primary health centres.</p>
+                    <span class="scheme-tag" data-i18n="scheme_4_tag">Rural Healthcare</span>
+                </div>
+                <div class="scheme-card">
+                    <div class="scheme-icon"><i class="fas fa-syringe"></i></div>
+                    <h3>Mission Indradhanush</h3>
+                    <p data-i18n="scheme_5_desc">Full immunization coverage for children and pregnant women across India.</p>
+                    <span class="scheme-tag" data-i18n="scheme_5_tag">Immunization</span>
+                </div>
+                <div class="scheme-card">
+                    <div class="scheme-icon"><i class="fas fa-laptop-medical"></i></div>
+                    <h3>Ayushman Bharat Digital Mission</h3>
+                    <p data-i18n="scheme_6_desc">Creating digital health IDs and health records for every citizen under ABDM.</p>
+                    <span class="scheme-tag" data-i18n="scheme_6_tag">Digital Health</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tech Stack -->
+    <section class="tech-section">
+        <div class="container">
+            <div class="section-label">
+                <span class="label-dot"></span>
+                <span data-i18n="tech_badge">Technology</span>
+            </div>
+            <h2 class="section-heading center" data-i18n="tech_title">Powered by AWS</h2>
+            <p class="section-desc center">Built on world-class cloud infrastructure for reliability, scale, and security.</p>
+            <div class="tech-marquee">
+                <div class="tech-track">
+                    <div class="tech-item"><i class="fas fa-brain"></i><span>Amazon Bedrock</span></div>
+                    <div class="tech-item"><i class="fas fa-file-alt"></i><span>Amazon Textract</span></div>
+                    <div class="tech-item"><i class="fas fa-microphone"></i><span>Amazon Transcribe</span></div>
+                    <div class="tech-item"><i class="fas fa-language"></i><span>Amazon Translate</span></div>
+                    <div class="tech-item"><i class="fas fa-volume-up"></i><span>Amazon Polly</span></div>
+                    <div class="tech-item"><i class="fas fa-stethoscope"></i><span>Comprehend Medical</span></div>
+                    <div class="tech-item"><i class="fas fa-bolt"></i><span>AWS Lambda</span></div>
+                    <div class="tech-item"><i class="fas fa-database"></i><span>DynamoDB</span></div>
+                    <!-- Duplicate for seamless scroll -->
+                    <div class="tech-item"><i class="fas fa-brain"></i><span>Amazon Bedrock</span></div>
+                    <div class="tech-item"><i class="fas fa-file-alt"></i><span>Amazon Textract</span></div>
+                    <div class="tech-item"><i class="fas fa-microphone"></i><span>Amazon Transcribe</span></div>
+                    <div class="tech-item"><i class="fas fa-language"></i><span>Amazon Translate</span></div>
+                    <div class="tech-item"><i class="fas fa-volume-up"></i><span>Amazon Polly</span></div>
+                    <div class="tech-item"><i class="fas fa-stethoscope"></i><span>Comprehend Medical</span></div>
+                    <div class="tech-item"><i class="fas fa-bolt"></i><span>AWS Lambda</span></div>
+                    <div class="tech-item"><i class="fas fa-database"></i><span>DynamoDB</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Team Section -->
+    <section class="team-section" id="team">
+        <div class="container">
+            <div class="section-label">
+                <span class="label-dot"></span>
+                <span data-i18n="team_badge">Our Team</span>
+            </div>
+            <h2 class="section-heading center" data-i18n="team_title">The Minds Behind SwasthyaMitra</h2>
+            <div class="team-grid">
+                <div class="team-card">
+                    <div class="team-avatar">
+                        <div class="avatar-letter">K</div>
+                    </div>
+                    <h3>Kanish</h3>
+                    <p class="team-role" data-i18n="team_k_role">Lab Samjho Lead</p>
+                    <p class="team-desc" data-i18n="team_k_desc">Building the AI-powered lab report interpretation engine with OCR and multilingual summaries.</p>
+                    <div class="team-tag">Lab Samjho</div>
+                </div>
+                <div class="team-card">
+                    <div class="team-avatar">
+                        <div class="avatar-letter">S</div>
+                    </div>
+                    <h3>Sharmi</h3>
+                    <p class="team-role" data-i18n="team_s_role">Care Guide Lead</p>
+                    <p class="team-desc" data-i18n="team_s_desc">Designing the voice-first health Q&A system with natural language understanding across Indian languages.</p>
+                    <div class="team-tag">Care Guide</div>
+                </div>
+                <div class="team-card">
+                    <div class="team-avatar">
+                        <div class="avatar-letter">S</div>
+                    </div>
+                    <h3>Saravana</h3>
+                    <p class="team-role" data-i18n="team_sv_role">MedScribe Lead</p>
+                    <p class="team-desc" data-i18n="team_sv_desc">Creating the AI documentation assistant for doctors with SOAP notes and medical entity extraction.</p>
+                    <div class="team-tag">MedScribe</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section" id="contact">
+        <div class="container">
+            <div class="cta-card">
+                <div class="cta-bg-pattern"></div>
+                <h2 data-i18n="cta_title">Ready to Experience<br>AI Healthcare?</h2>
+                <p data-i18n="cta_desc">Join thousands of Indians already using SwasthyaMitra for better health understanding.</p>
+                <button class="btn-cta" onclick="showLoginModal()" data-i18n="cta_button">Start Now — It's Free</button>
+                <p class="cta-note" data-i18n="cta_note">No email needed. Just your phone number.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <div class="nav-logo">
+                        <div class="logo-icon"><i class="fas fa-heartbeat"></i></div>
+                        <span class="logo-text">SwasthyaMitra</span>
+                    </div>
+                    <p data-i18n="footer_desc">AI-powered healthcare assistant for every Indian citizen. Breaking language barriers, one conversation at a time.</p>
+                    <div class="footer-flag">
+                        <div class="flag-bar saffron"></div>
+                        <div class="flag-bar white"></div>
+                        <div class="flag-bar green"></div>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <h4 data-i18n="footer_services">Services</h4>
+                    <a href="#services">Lab Samjho</a>
+                    <a href="#services">Care Guide</a>
+                    <a href="#services">MedScribe</a>
+                </div>
+                <div class="footer-links">
+                    <h4 data-i18n="footer_quicklinks">Quick Links</h4>
+                    <a href="#about" data-i18n="nav_about">About</a>
+                    <a href="#schemes" data-i18n="nav_schemes">Govt Schemes</a>
+                    <a href="#team" data-i18n="nav_team">Team</a>
+                </div>
+                <div class="footer-links">
+                    <h4 data-i18n="footer_support">Support</h4>
+                    <a href="#" data-i18n="footer_help">Help Center</a>
+                    <a href="#" data-i18n="footer_privacy">Privacy Policy</a>
+                    <a href="#" data-i18n="footer_terms">Terms of Service</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 SwasthyaMitra. <span data-i18n="footer_rights">Made with &#10084; in India. All rights reserved.</span></p>
+                <p class="footer-disclaimer" data-i18n="footer_disclaimer">Disclaimer: SwasthyaMitra provides AI-assisted health information. Always consult a qualified healthcare professional for medical decisions.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Login Modal -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeLoginModal()"><i class="fas fa-times"></i></button>
+
+            <!-- Step 1: Phone Number -->
+            <div class="login-step active" id="loginStep1">
+                <div class="modal-header">
+                    <div class="modal-logo"><i class="fas fa-heartbeat"></i></div>
+                    <h2 data-i18n="login_title">Welcome to SwasthyaMitra</h2>
+                    <p data-i18n="login_subtitle">Enter your mobile number to get started</p>
+                </div>
+                <div class="phone-input-group">
+                    <div class="country-code">
+                        <img src="https://flagcdn.com/w20/in.png" alt="IN" onerror="this.style.display='none'">
+                        <span>+91</span>
+                    </div>
+                    <input type="tel" id="phoneInput" placeholder="Enter 10-digit mobile number" maxlength="10" pattern="[0-9]{10}">
+                </div>
+                <button class="btn-primary full-width" onclick="sendOTP()" data-i18n="login_send_otp">Send OTP</button>
+                <p class="login-note" data-i18n="login_note">We'll send a 6-digit verification code to your number</p>
+            </div>
+
+            <!-- Step 2: OTP -->
+            <div class="login-step" id="loginStep2">
+                <div class="modal-header">
+                    <div class="modal-logo"><i class="fas fa-sms"></i></div>
+                    <h2 data-i18n="otp_title">Verify OTP</h2>
+                    <p data-i18n="otp_subtitle">Enter the 6-digit code sent to your phone</p>
+                </div>
+                <div class="otp-input-group">
+                    <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this,1)">
+                    <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this,2)">
+                    <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this,3)">
+                    <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this,4)">
+                    <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this,5)">
+                    <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this,6)">
+                </div>
+                <button class="btn-primary full-width" onclick="verifyOTP()" data-i18n="otp_verify">Verify & Continue</button>
+                <p class="login-note"><span data-i18n="otp_resend">Didn't receive?</span> <a href="#" onclick="resendOTP()" data-i18n="otp_resend_btn">Resend OTP</a></p>
+            </div>
+
+            <!-- Step 3: Role Selection -->
+            <div class="login-step" id="loginStep3">
+                <div class="modal-header">
+                    <div class="modal-logo"><i class="fas fa-user-tag"></i></div>
+                    <h2 data-i18n="role_title">Who are you?</h2>
+                    <p data-i18n="role_subtitle">Select your role to get a personalized experience</p>
+                </div>
+                <div class="role-selection">
+                    <div class="role-option" onclick="selectRole('patient')">
+                        <div class="role-option-icon"><i class="fas fa-user"></i></div>
+                        <h3 data-i18n="role_patient">Patient</h3>
+                        <p data-i18n="role_patient_short">Get health guidance & understand reports</p>
+                    </div>
+                    <div class="role-option" onclick="selectRole('doctor')">
+                        <div class="role-option-icon"><i class="fas fa-user-md"></i></div>
+                        <h3 data-i18n="role_doctor">Doctor</h3>
+                        <p data-i18n="role_doctor_short">AI documentation & report analysis</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Language Selection -->
+            <div class="login-step" id="loginStep4">
+                <div class="modal-header">
+                    <div class="modal-logo"><i class="fas fa-language"></i></div>
+                    <h2 data-i18n="lang_title">Choose Your Language</h2>
+                    <p data-i18n="lang_subtitle">The entire app will work in your chosen language</p>
+                </div>
+                <div class="language-grid">
+                    <div class="lang-option" onclick="selectLanguage('en','EN')">
+                        <span class="lang-native">English</span>
+                    </div>
+                    <div class="lang-option" onclick="selectLanguage('hi','HI')">
+                        <span class="lang-native">&#2361;&#2367;&#2344;&#2381;&#2342;&#2368;</span>
+                        <span class="lang-english">Hindi</span>
+                    </div>
+                    <div class="lang-option" onclick="selectLanguage('ta','TA')">
+                        <span class="lang-native">&#2980;&#2990;&#2992;&#3021;</span>
+                        <span class="lang-english">Tamil</span>
+                    </div>
+                    <div class="lang-option" onclick="selectLanguage('te','TE')">
+                        <span class="lang-native">&#3108;&#3142;&#3122;&#3137;&#3095;&#3137;</span>
+                        <span class="lang-english">Telugu</span>
+                    </div>
+                    <div class="lang-option" onclick="selectLanguage('kn','KN')">
+                        <span class="lang-native">&#3221;&#3240;&#3277;&#3240;&#3233;</span>
+                        <span class="lang-english">Kannada</span>
+                    </div>
+                    <div class="lang-option" onclick="selectLanguage('ml','ML')">
+                        <span class="lang-native">&#3374;&#3378;&#3375;&#3390;&#3379;&#3330;</span>
+                        <span class="lang-english">Malayalam</span>
+                    </div>
+                    <div class="lang-option" onclick="selectLanguage('bn','BN')">
+                        <span class="lang-native">&#2476;&#2494;&#2434;&#2482;&#2494;</span>
+                        <span class="lang-english">Bengali</span>
+                    </div>
+                    <div class="lang-option" onclick="selectLanguage('mr','MR')">
+                        <span class="lang-native">&#2350;&#2352;&#2366;&#2336;&#2368;</span>
+                        <span class="lang-english">Marathi</span>
+                    </div>
+                    <div class="lang-option" onclick="selectLanguage('gu','GU')">
+                        <span class="lang-native">&#2711;&#2753;&#2716;&#2736;&#2750;&#2724;&#2752;</span>
+                        <span class="lang-english">Gujarati</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Overlay -->
+    <div class="dashboard-overlay" id="dashboardOverlay">
+        <!-- Patient Dashboard -->
+        <div class="dashboard" id="patientDashboard">
+            <nav class="dash-nav">
+                <a href="#" class="nav-logo">
+                    <div class="logo-icon"><i class="fas fa-heartbeat"></i></div>
+                    <span class="logo-text">SwasthyaMitra</span>
+                </a>
+                <div class="dash-nav-right">
+                    <span class="user-role-badge"><i class="fas fa-user"></i> Patient</span>
+                    <button class="btn-ghost small" onclick="logout()" data-i18n="dash_logout">Logout</button>
+                </div>
+            </nav>
+            <div class="dash-content">
+                <h2 data-i18n="dash_welcome">Welcome! Choose a service</h2>
+                <div class="dash-services">
+                    <div class="dash-service-card" onclick="openFeature('lab-samjho')">
+                        <div class="dash-svc-icon lab"><i class="fas fa-file-medical-alt"></i></div>
+                        <h3>Lab Samjho</h3>
+                        <p data-i18n="dash_lab_desc">Upload & understand your lab reports</p>
+                    </div>
+                    <div class="dash-service-card" onclick="openFeature('care-guide')">
+                        <div class="dash-svc-icon care"><i class="fas fa-microphone-alt"></i></div>
+                        <h3>Care Guide</h3>
+                        <p data-i18n="dash_care_desc">Ask health questions by voice</p>
+                    </div>
+                </div>
+                <div class="dash-schemes-preview">
+                    <h3 data-i18n="dash_schemes_title">Government Health Schemes for You</h3>
+                    <div class="dash-scheme-cards">
+                        <div class="mini-scheme">
+                            <i class="fas fa-hospital"></i>
+                            <span>Ayushman Bharat - Free treatment up to &#8377;5 Lakh</span>
+                        </div>
+                        <div class="mini-scheme">
+                            <i class="fas fa-baby"></i>
+                            <span>Janani Suraksha - Maternity cash assistance</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Doctor Dashboard -->
+        <div class="dashboard" id="doctorDashboard">
+            <nav class="dash-nav">
+                <a href="#" class="nav-logo">
+                    <div class="logo-icon"><i class="fas fa-heartbeat"></i></div>
+                    <span class="logo-text">SwasthyaMitra</span>
+                </a>
+                <div class="dash-nav-right">
+                    <span class="user-role-badge doctor"><i class="fas fa-user-md"></i> Doctor</span>
+                    <button class="btn-ghost small" onclick="logout()" data-i18n="dash_logout">Logout</button>
+                </div>
+            </nav>
+            <div class="dash-content">
+                <h2 data-i18n="dash_welcome_doc">Welcome, Doctor! Choose a tool</h2>
+                <div class="dash-services">
+                    <div class="dash-service-card" onclick="openFeature('medscribe')">
+                        <div class="dash-svc-icon med"><i class="fas fa-notes-medical"></i></div>
+                        <h3>MedScribe</h3>
+                        <p data-i18n="dash_med_desc">Record consultation & generate notes</p>
+                    </div>
+                    <div class="dash-service-card" onclick="openFeature('lab-samjho')">
+                        <div class="dash-svc-icon lab"><i class="fas fa-file-medical-alt"></i></div>
+                        <h3>Lab Samjho</h3>
+                        <p data-i18n="dash_lab_doc_desc">Quick lab report analysis</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature: Lab Samjho -->
+        <div class="feature-page" id="featureLabSamjho">
+            <nav class="dash-nav">
+                <button class="back-btn" onclick="goBackToDash()"><i class="fas fa-arrow-left"></i></button>
+                <span class="feature-title">Lab Samjho</span>
+                <button class="btn-ghost small" onclick="logout()">Logout</button>
+            </nav>
+            <div class="feature-content">
+                <div class="upload-area" id="uploadArea">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <h3 data-i18n="lab_upload_title">Upload Your Lab Report</h3>
+                    <p data-i18n="lab_upload_desc">Take a photo or upload an image (JPEG, PNG, PDF)</p>
+                    <div class="upload-buttons">
+                        <button class="btn-primary"><i class="fas fa-camera"></i> <span data-i18n="lab_camera">Camera</span></button>
+                        <button class="btn-ghost"><i class="fas fa-folder-open"></i> <span data-i18n="lab_gallery">Gallery</span></button>
+                    </div>
+                </div>
+                <div class="analysis-result" id="analysisResult" style="display:none;">
+                    <div class="result-header">
+                        <i class="fas fa-check-circle"></i>
+                        <h3 data-i18n="lab_result_title">Analysis Complete</h3>
+                    </div>
+                    <div class="result-content">
+                        <p data-i18n="lab_result_sample">Your report shows normal ranges for most values. Hemoglobin is slightly low at 11.2 g/dL (normal: 12-16). Consider iron-rich foods.</p>
+                    </div>
+                    <button class="btn-primary"><i class="fas fa-volume-up"></i> <span data-i18n="lab_listen">Listen in Your Language</span></button>
+                    <p class="disclaimer" data-i18n="disclaimer">&#9888; This is AI-generated information. Please consult a healthcare professional for medical decisions.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature: Care Guide -->
+        <div class="feature-page" id="featureCareGuide">
+            <nav class="dash-nav">
+                <button class="back-btn" onclick="goBackToDash()"><i class="fas fa-arrow-left"></i></button>
+                <span class="feature-title">Care Guide</span>
+                <button class="btn-ghost small" onclick="logout()">Logout</button>
+            </nav>
+            <div class="feature-content">
+                <div class="voice-area">
+                    <div class="voice-circle" id="voiceCircle" onclick="toggleVoice()">
+                        <i class="fas fa-microphone"></i>
+                    </div>
+                    <p class="voice-status" id="voiceStatus" data-i18n="care_tap">Tap to speak your health question</p>
+                    <div class="voice-chat" id="voiceChat">
+                        <div class="chat-msg bot">
+                            <span data-i18n="care_greeting">Namaste! Ask me any health question in your language.</span>
+                        </div>
+                    </div>
+                </div>
+                <p class="disclaimer" data-i18n="disclaimer">&#9888; This is AI-generated information. Please consult a healthcare professional for medical decisions.</p>
+            </div>
+        </div>
+
+        <!-- Feature: MedScribe -->
+        <div class="feature-page" id="featureMedScribe">
+            <nav class="dash-nav">
+                <button class="back-btn" onclick="goBackToDash()"><i class="fas fa-arrow-left"></i></button>
+                <span class="feature-title">MedScribe</span>
+                <button class="btn-ghost small" onclick="logout()">Logout</button>
+            </nav>
+            <div class="feature-content">
+                <div class="record-area">
+                    <div class="record-circle" id="recordCircle" onclick="toggleRecord()">
+                        <i class="fas fa-microphone"></i>
+                    </div>
+                    <p class="voice-status" id="recordStatus" data-i18n="med_tap">Tap to start recording consultation</p>
+                    <div class="soap-notes" id="soapNotes" style="display:none;">
+                        <h3 data-i18n="med_soap_title">Generated SOAP Notes</h3>
+                        <div class="soap-section">
+                            <h4>Subjective</h4>
+                            <p>Patient reports persistent headache for 3 days, mild fever, and body pain...</p>
+                        </div>
+                        <div class="soap-section">
+                            <h4>Objective</h4>
+                            <p>Temperature: 100.4&#176;F, BP: 120/80 mmHg, Pulse: 82/min...</p>
+                        </div>
+                        <div class="soap-section">
+                            <h4>Assessment</h4>
+                            <p>Viral fever with tension-type headache...</p>
+                        </div>
+                        <div class="soap-section">
+                            <h4>Plan</h4>
+                            <p>Paracetamol 500mg TDS, adequate hydration, rest. Follow-up in 3 days if symptoms persist...</p>
+                        </div>
+                        <div class="entities-section">
+                            <h4 data-i18n="med_entities">Extracted Medical Entities</h4>
+                            <div class="entity-tags">
+                                <span class="entity-tag condition">Headache</span>
+                                <span class="entity-tag condition">Viral Fever</span>
+                                <span class="entity-tag medication">Paracetamol 500mg</span>
+                                <span class="entity-tag vital">BP: 120/80</span>
+                                <span class="entity-tag vital">Temp: 100.4&#176;F</span>
+                            </div>
+                        </div>
+                        <button class="btn-primary"><i class="fas fa-language"></i> <span data-i18n="med_translate">Generate Patient Instructions</span></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/translations.js"></script>
+    <script src="assets/js/app.js"></script>
+</body>
+</html>
