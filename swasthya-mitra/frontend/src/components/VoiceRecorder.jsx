@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { Mic, Square } from 'lucide-react';
 
-export default function VoiceRecorder({ onRecordingComplete, maxDuration = 30, disabled = false }) {
+export default function VoiceRecorder({ onRecordingComplete, maxDuration = 30, disabled = false, compact = false }) {
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
   const mediaRecorderRef = useRef(null);
@@ -65,6 +65,23 @@ export default function VoiceRecorder({ onRecordingComplete, maxDuration = 30, d
     const s = seconds % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
+
+  if (compact) {
+    return (
+      <button
+        onClick={isRecording ? stopRecording : startRecording}
+        disabled={disabled}
+        className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all active:scale-95 disabled:opacity-50 shrink-0 ${
+          isRecording
+            ? 'bg-red-500 text-white animate-pulse'
+            : 'bg-gray-100 border border-gray-200 text-gray-500 hover:bg-primary-50 hover:text-primary-500 hover:border-primary-200'
+        }`}
+        title={isRecording ? `Recording ${formatTime(duration)}` : 'Voice input'}
+      >
+        {isRecording ? <Square size={16} /> : <Mic size={18} />}
+      </button>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center gap-3">

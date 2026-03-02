@@ -39,7 +39,7 @@ export const EMERGENCY_NUMBERS = {
 };
 
 export const CLASSIFICATION_COLORS = {
-  Normal: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', icon: '✅' },
+  Normal: { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', icon: '✅' },
   Borderline: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', icon: '⚠️' },
   Abnormal: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', icon: '🔴' },
   Unclassified: { bg: 'bg-gray-50', border: 'border-gray-200', text: 'text-gray-700', icon: '❓' },

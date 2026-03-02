@@ -12,7 +12,7 @@ export default function LanguageSelector() {
           onClick={() => setLanguage(key)}
           className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
             language === key
-              ? 'bg-white text-emerald-700 shadow-sm'
+              ? 'bg-white text-primary-600 shadow-sm'
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
