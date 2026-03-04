@@ -44,10 +44,10 @@ const LOADING_STEPS = {
 };
 
 const SOAP_CONFIG = {
-  subjective: { label: 'Subjective', icon: User, accentBar: 'accent-bar-primary', accentColor: 'bg-sky-500', tagBg: 'bg-sky-50', tagText: 'text-sky-700', iconColor: 'text-sky-500' },
-  objective: { label: 'Objective', icon: Activity, accentBar: 'accent-bar-primary', accentColor: 'bg-emerald-500', tagBg: 'bg-emerald-50', tagText: 'text-emerald-700', iconColor: 'text-emerald-500' },
-  assessment: { label: 'Assessment', icon: FileText, accentBar: 'accent-bar-amber', accentColor: 'bg-amber-500', tagBg: 'bg-amber-50', tagText: 'text-amber-700', iconColor: 'text-amber-500' },
-  plan: { label: 'Plan', icon: CheckCircle, accentBar: 'accent-bar-rose', accentColor: 'bg-rose-500', tagBg: 'bg-rose-50', tagText: 'text-rose-700', iconColor: 'text-rose-500' },
+  subjective: { labelKey: 'medscribe.subjective', icon: User, accentBar: 'accent-bar-primary', accentColor: 'bg-sky-500', tagBg: 'bg-sky-50', tagText: 'text-sky-700', iconColor: 'text-sky-500' },
+  objective: { labelKey: 'medscribe.objective', icon: Activity, accentBar: 'accent-bar-primary', accentColor: 'bg-emerald-500', tagBg: 'bg-emerald-50', tagText: 'text-emerald-700', iconColor: 'text-emerald-500' },
+  assessment: { labelKey: 'medscribe.assessment', icon: FileText, accentBar: 'accent-bar-amber', accentColor: 'bg-amber-500', tagBg: 'bg-amber-50', tagText: 'text-amber-700', iconColor: 'text-amber-500' },
+  plan: { labelKey: 'medscribe.plan', icon: CheckCircle, accentBar: 'accent-bar-rose', accentColor: 'bg-rose-500', tagBg: 'bg-rose-50', tagText: 'text-rose-700', iconColor: 'text-rose-500' },
 };
 
 const FLOW_STEPS = [
@@ -381,11 +381,11 @@ export default function MedScribe() {
                     {/* Live transcript */}
                     {liveTranscript ? (
                       <div className="mx-auto max-w-lg px-4 py-3 bg-white/90 rounded-xl border border-primary-200/40 shadow-sm">
-                        <p className="text-[10px] uppercase tracking-widest text-warm-gray/60 font-heading font-semibold mb-1.5">Live Transcription</p>
+                        <p className="text-[10px] uppercase tracking-widest text-warm-gray/60 font-heading font-semibold mb-1.5">{t('medscribe.liveTranscription')}</p>
                         <p className="text-sm text-dark font-body leading-relaxed">{liveTranscript}</p>
                       </div>
                     ) : (
-                      <p className="text-xs text-warm-gray font-body animate-pulse">Listening... Start speaking</p>
+                      <p className="text-xs text-warm-gray font-body animate-pulse">{t('medscribe.speakNow')}</p>
                     )}
 
                     {/* Stop button */}
@@ -394,25 +394,25 @@ export default function MedScribe() {
                       className="mt-2 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-500 text-white font-heading font-bold text-xs hover:bg-red-600 active:scale-[0.98] transition-all shadow-sm shadow-red-500/20"
                     >
                       <Square size={12} fill="white" />
-                      Stop & Generate Notes
+                      {t('medscribe.stopRecording')}
                     </button>
                   </div>
                 ) : (
                   <>
-                    <h3 className="font-heading font-bold text-dark text-sm mb-1">Record Consultation</h3>
+                    <h3 className="font-heading font-bold text-dark text-sm mb-1">{t('medscribe.recordTitle')}</h3>
                     <p className="font-body text-xs text-warm-gray mb-6 max-w-md leading-relaxed">
-                      Record the doctor-patient conversation and let AI generate structured SOAP notes, medication lists, and patient instructions automatically.
+                      {t('medscribe.recordDesc')}
                     </p>
 
                     {/* Tap to record hint */}
-                    <p className="text-xs text-primary-500 font-heading font-semibold mb-4">Tap the mic to start recording</p>
+                    <p className="text-xs text-primary-500 font-heading font-semibold mb-4">{t('medscribe.startRecording')}</p>
 
                     {/* Supported formats hint */}
                     <div className="flex items-center gap-2.5">
                       {[
-                        { icon: Stethoscope, label: 'SOAP Notes' },
-                        { icon: Pill, label: 'Medications' },
-                        { icon: Languages, label: 'Multi-lingual' },
+                        { icon: Stethoscope, label: t('medscribe.soapNotes') },
+                        { icon: Pill, label: t('medscribe.medications') },
+                        { icon: Languages, label: t('medscribe.multilingual') },
                       ].map(({ icon: HintIcon, label }) => (
                         <span
                           key={label}
@@ -456,8 +456,8 @@ export default function MedScribe() {
                       <Mic size={13} className="text-warm-gray" />
                     </div>
                     <div>
-                      <h3 className="font-heading font-bold text-dark text-sm">Transcription</h3>
-                      <p className="text-[10px] text-warm-gray font-body mt-0.5">Raw consultation transcript</p>
+                      <h3 className="font-heading font-bold text-dark text-sm">{t('medscribe.transcription')}</h3>
+                      <p className="text-[10px] text-warm-gray font-body mt-0.5">{t('medscribe.transcriptionDesc')}</p>
                     </div>
                   </div>
                   <div className="px-5 py-4">
@@ -474,16 +474,16 @@ export default function MedScribe() {
                       <Sparkles size={13} className="text-primary-500" />
                     </div>
                     <div>
-                      <h3 className="font-heading font-bold text-dark text-sm">SOAP Notes</h3>
-                      <p className="text-[10px] text-warm-gray font-body mt-0.5">AI-generated clinical documentation</p>
+                      <h3 className="font-heading font-bold text-dark text-sm">{t('medscribe.soapNotes')}</h3>
+                      <p className="text-[10px] text-warm-gray font-body mt-0.5">{t('medscribe.soapDesc')}</p>
                     </div>
                     <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-gray-50 text-warm-gray font-heading font-medium border border-gray-100">
-                      AI-generated
+                      {t('medscribe.aiGenerated')}
                     </span>
                   </div>
 
                   <div className="grid sm:grid-cols-2 gap-3">
-                    {Object.entries(SOAP_CONFIG).map(([key, { label, icon: SoapIcon, accentColor, tagBg, tagText, iconColor }], idx) => {
+                    {Object.entries(SOAP_CONFIG).map(([key, { labelKey, icon: SoapIcon, accentColor, tagBg, tagText, iconColor }], idx) => {
                       const content = result.soap_note[key];
                       if (!content) return null;
                       return (
@@ -500,7 +500,7 @@ export default function MedScribe() {
                                   <SoapIcon size={12} className={iconColor} />
                                 </div>
                                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-heading font-semibold ${tagBg} ${tagText}`}>
-                                  {label}
+                                  {t(labelKey)}
                                 </span>
                               </div>
                               <p className="font-body text-xs text-gray-700 whitespace-pre-wrap leading-relaxed">
@@ -523,8 +523,8 @@ export default function MedScribe() {
                       <Pill size={13} className="text-primary-500" />
                     </div>
                     <div>
-                      <h3 className="font-heading font-bold text-dark text-sm">Medications</h3>
-                      <p className="text-[10px] text-warm-gray font-body mt-0.5">Extracted prescription details</p>
+                      <h3 className="font-heading font-bold text-dark text-sm">{t('medscribe.medications')}</h3>
+                      <p className="text-[10px] text-warm-gray font-body mt-0.5">{t('medscribe.medicationsDesc')}</p>
                     </div>
                     <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-primary-50 text-primary-600 font-heading font-bold border border-primary-100">
                       {result.medications.length}
@@ -535,9 +535,9 @@ export default function MedScribe() {
                       <thead>
                         <tr className="bg-gray-50/80">
                           <th className="px-5 py-2.5 text-left text-[10px] text-warm-gray uppercase tracking-wider font-heading font-semibold w-10">#</th>
-                          <th className="px-5 py-2.5 text-left text-[10px] text-warm-gray uppercase tracking-wider font-heading font-semibold">Medication</th>
-                          <th className="px-5 py-2.5 text-left text-[10px] text-warm-gray uppercase tracking-wider font-heading font-semibold">Dosage</th>
-                          <th className="px-5 py-2.5 text-left text-[10px] text-warm-gray uppercase tracking-wider font-heading font-semibold">Frequency</th>
+                          <th className="px-5 py-2.5 text-left text-[10px] text-warm-gray uppercase tracking-wider font-heading font-semibold">{t('medscribe.medication')}</th>
+                          <th className="px-5 py-2.5 text-left text-[10px] text-warm-gray uppercase tracking-wider font-heading font-semibold">{t('medscribe.dosage')}</th>
+                          <th className="px-5 py-2.5 text-left text-[10px] text-warm-gray uppercase tracking-wider font-heading font-semibold">{t('medscribe.frequency')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -570,7 +570,7 @@ export default function MedScribe() {
                         <div className="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center">
                           <CheckCircle size={13} className="text-india-green" />
                         </div>
-                        <h3 className="font-heading font-bold text-dark text-sm">Patient Instructions</h3>
+                        <h3 className="font-heading font-bold text-dark text-sm">{t('medscribe.patientInstructions')}</h3>
                       </div>
                       <p className="font-body text-xs text-gray-700 whitespace-pre-wrap leading-relaxed pl-9">
                         {result.patient_instructions_translated || result.patient_instructions}
@@ -588,12 +588,12 @@ export default function MedScribe() {
                       <Volume2 size={13} className="text-violet-600" />
                     </div>
                     <div>
-                      <h3 className="font-heading font-bold text-dark text-sm">Audio Instructions</h3>
-                      <p className="text-[10px] text-warm-gray font-body mt-0.5">In patient's preferred language</p>
+                      <h3 className="font-heading font-bold text-dark text-sm">{t('medscribe.audioInstructions')}</h3>
+                      <p className="text-[10px] text-warm-gray font-body mt-0.5">{t('medscribe.audioInstructionsDesc')}</p>
                     </div>
                   </div>
                   <div className="pl-9">
-                    <AudioPlayer audioUrl={result.patient_audio_url} label="Listen to instructions in patient's language" />
+                    <AudioPlayer audioUrl={result.patient_audio_url} label={t('medscribe.listenInstructions')} />
                   </div>
                 </div>
               )}
@@ -607,14 +607,14 @@ export default function MedScribe() {
                   className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary-500 text-white font-heading font-bold text-xs hover:bg-primary-600 active:scale-[0.98] transition-all shadow-sm shadow-primary-500/20"
                 >
                   <Printer size={14} />
-                  Print Notes
+                  {t('medscribe.printNotes')}
                 </button>
                 <button
                   onClick={handleReset}
                   className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl border-2 border-primary-500 text-primary-600 font-heading font-semibold text-xs hover:bg-primary-50 active:scale-[0.98] transition-all"
                 >
                   <RotateCcw size={14} />
-                  New Session
+                  {t('medscribe.newSession')}
                 </button>
               </div>
             </div>
@@ -630,7 +630,7 @@ export default function MedScribe() {
               <div className="w-6 h-6 bg-primary-50 rounded-lg flex items-center justify-center">
                 <Brain size={12} className="text-primary-500" />
               </div>
-              AI Pipeline
+              {t('medscribe.aiPipeline')}
             </h4>
             <div className="space-y-0">
               {PIPELINE_STEPS.map(({ step, tech, color, ring }, i) => (
@@ -658,7 +658,7 @@ export default function MedScribe() {
               <div className="w-6 h-6 bg-primary-50 rounded-lg flex items-center justify-center">
                 <Clock size={12} className="text-primary-500" />
               </div>
-              Session Stats
+              {t('medscribe.sessionStats')}
             </h4>
             {sessionStats.totalNotes === 0 ? (
               <div className="text-center py-4">
@@ -705,7 +705,7 @@ export default function MedScribe() {
               <div className="w-6 h-6 bg-primary-50 rounded-lg flex items-center justify-center">
                 <Sparkles size={12} className="text-primary-500" />
               </div>
-              Powered By
+              {t('medscribe.poweredBy')}
             </h4>
             <div className="flex flex-wrap gap-1.5">
               {[

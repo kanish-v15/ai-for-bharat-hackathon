@@ -204,7 +204,7 @@ export default function PatientDashboard() {
               <div className="flex items-center gap-2 mb-2">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-heading font-medium ring-1 ring-emerald-200/60">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  All systems healthy
+                  {t('common.online')}
                 </span>
               </div>
               <h1 className="font-display text-2xl lg:text-3xl text-dark tracking-tight leading-tight">
@@ -284,7 +284,7 @@ export default function PatientDashboard() {
               <div className="flex items-center justify-between mb-5">
                 <div>
                   <h2 className="font-display text-xl text-dark">
-                    Health Overview
+                    {t('dashboard.yourHealth')}
                   </h2>
                   <p className="font-body text-xs text-warm-gray mt-0.5">
                     Summary of your lab report results
@@ -396,7 +396,7 @@ export default function PatientDashboard() {
         <div className="lg:col-span-2 animate-stagger-4">
           <div className="flex flex-col h-full gap-3">
             <div className="flex items-center justify-between mb-0.5">
-              <h2 className="font-display text-xl text-dark">Quick Actions</h2>
+              <h2 className="font-display text-xl text-dark">{t('dashboard.quickActions')}</h2>
               <Sparkles size={15} className="text-primary-400" />
             </div>
 
@@ -454,7 +454,7 @@ export default function PatientDashboard() {
               </div>
               <div>
                 <h2 className="font-display text-lg text-dark">
-                  Recent Activity
+                  {t('dashboard.recentActivity')}
                 </h2>
                 <p className="font-body text-[11px] text-warm-gray">
                   Your latest health interactions
@@ -465,7 +465,7 @@ export default function PatientDashboard() {
               onClick={() => navigate('/health-timeline')}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-50 hover:bg-primary-50 text-xs font-heading font-medium text-warm-gray hover:text-primary-600 transition-all group"
             >
-              View All
+              {t('common.viewAll')}
               <ArrowRight
                 size={12}
                 className="group-hover:translate-x-0.5 transition-transform"
@@ -597,7 +597,7 @@ export default function PatientDashboard() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="font-display text-xl text-dark">
-                  Government Schemes
+                  {t('dashboard.govSchemes')}
                 </h2>
                 <p className="font-body text-xs text-warm-gray mt-0.5">
                   Healthcare benefits you may be eligible for

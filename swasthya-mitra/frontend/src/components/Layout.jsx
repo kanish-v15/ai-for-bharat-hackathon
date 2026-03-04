@@ -1,14 +1,17 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { FileSearch, MessageCircle, ClipboardList } from 'lucide-react';
 import LanguageSelector from './LanguageSelector';
-
-const NAV_ITEMS = [
-  { to: '/lab-samjho', label: 'Lab Samjho', icon: FileSearch },
-  { to: '/care-guide', label: 'Care Guide', icon: MessageCircle },
-  { to: '/medscribe', label: 'MedScribe', icon: ClipboardList },
-];
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Layout() {
+  const { t } = useLanguage();
+
+  const NAV_ITEMS = [
+    { to: '/lab-samjho', label: t('common.labSamjho'), icon: FileSearch },
+    { to: '/care-guide', label: t('common.careGuide'), icon: MessageCircle },
+    { to: '/medscribe', label: t('common.medscribe'), icon: ClipboardList },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col max-w-lg mx-auto">
       {/* Header */}

@@ -8,32 +8,8 @@ import { LANGUAGES } from '../utils/constants';
 import AudioPlayer from '../components/AudioPlayer';
 import Disclaimer from '../components/Disclaimer';
 
-const PLACEHOLDERS = {
-  hindi: 'अपना सवाल टाइप करें...',
-  tamil: 'உங்கள் கேள்வியை தட்டச்சு செய்யவும்...',
-  english: 'Type your health question...',
-  telugu: 'మీ ఆరోగ్య ప్రశ్నను టైప్ చేయండి...',
-  kannada: 'ನಿಮ್ಮ ಆರೋಗ್ಯ ಪ್ರಶ್ನೆಯನ್ನು ಟೈಪ್ ಮಾಡಿ...',
-  malayalam: 'നിങ്ങളുടെ ആരോഗ്യ ചോദ്യം ടൈപ്പ് ചെയ്യുക...',
-  bengali: 'আপনার স্বাস্থ্য প্রশ্ন টাইপ করুন...',
-  marathi: 'तुमचा आरोग्य प्रश्न टाइप करा...',
-  gujarati: 'તમારો આરોગ્ય પ્રશ્ન ટાઈપ કરો...',
-};
-
-const WELCOME_MSG = {
-  hindi: 'नमस्ते! मैं आपका AI स्वास्थ्य सहायक हूँ। कोई भी स्वास्थ्य सवाल पूछें — टाइप करें या माइक दबाकर बोलें।',
-  tamil: 'வணக்கம்! நான் உங்கள் AI உடல்நல உதவியாளர். எந்த ஆரோக்கிய கேள்வியும் கேளுங்கள் — தட்டச்சு செய்யவும் அல்லது மைக் பட்டனை அழுத்தி பேசவும்.',
-  english: 'Hello! I\'m your AI health assistant. Ask any health question — type below or press the mic to speak.',
-  telugu: 'నమస్కారం! నేను మీ AI ఆరోగ్య సహాయకుడిని. ఏదైనా ఆరోగ్య ప్రశ్న అడగండి — టైప్ చేయండి లేదా మైక్ నొక్కి మాట్లాడండి.',
-  kannada: 'ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮ AI ಆರೋಗ್ಯ ಸಹಾಯಕ. ಯಾವುದೇ ಆರೋಗ್ಯ ಪ್ರಶ್ನೆ ಕೇಳಿ — ಟೈಪ್ ಮಾಡಿ ಅಥವಾ ಮೈಕ್ ಒತ್ತಿ ಮಾತನಾಡಿ.',
-  malayalam: 'നമസ്കാരം! ഞാൻ നിങ്ങളുടെ AI ആരോഗ്യ സഹായിയാണ്. ഏതെങ്കിലും ആരോഗ്യ ചോദ്യം ചോദിക്കൂ — ടൈപ്പ് ചെയ്യുക അല്ലെങ്കിൽ മൈക്ക് അമർത്തി സംസാരിക്കുക.',
-  bengali: 'নমস্কার! আমি আপনার AI স্বাস্থ্য সহায়ক। যেকোনো স্বাস্থ্য প্রশ্ন জিজ্ঞাসা করুন — টাইপ করুন বা মাইক চাপুন।',
-  marathi: 'नमस्कार! मी तुमचा AI आरोग्य सहाय्यक आहे. कोणताही आरोग्य प्रश्न विचारा — टाइप करा किंवा माइक दाबून बोला.',
-  gujarati: 'નમસ્તે! હું તમારો AI આરોગ્ય સહાયક છું. કોઈપણ આરોગ્ય પ્રશ્ન પૂછો — ટાઈપ કરો અથવા માઈક દબાવીને બોલો.',
-};
-
 export default function CareGuide() {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const { addNotification } = useNotifications();
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -164,7 +140,7 @@ export default function CareGuide() {
     } catch (err) {
       setMessages((prev) => [...prev, {
         role: 'assistant',
-        text: err.response?.data?.detail || 'Something went wrong. Please try again.',
+        text: err.response?.data?.detail || t('common.error'),
         isError: true,
         timestamp: new Date(),
       }]);
@@ -188,7 +164,7 @@ export default function CareGuide() {
   const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
   const formatTimestamp = (d) => d ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
-  const welcomeText = WELCOME_MSG[language] || WELCOME_MSG.english;
+  const welcomeText = `${t('careGuide.welcome')}. ${t('careGuide.welcomeDesc')}`;
 
   return (
     <div className="h-[calc(100vh-130px)] flex flex-col overflow-hidden rounded-3xl bg-gray-50">
@@ -200,14 +176,14 @@ export default function CareGuide() {
           </div>
           <div>
             <h2 className="font-heading text-sm font-bold text-dark">SwasthyaMitra</h2>
-            <p className="text-[11px] text-green-500 font-medium">Online</p>
+            <p className="text-[11px] text-green-500 font-medium">{t('common.online')}</p>
           </div>
         </div>
         {messages.length > 0 && (
           <button
             onClick={clearSession}
             className="p-2 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-            title="Clear chat"
+            title={t('common.clearChat')}
           >
             <Trash2 size={18} />
           </button>
@@ -216,7 +192,7 @@ export default function CareGuide() {
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 chat-scroll">
-        {/* Welcome message (always shown as first assistant message) */}
+        {/* Welcome message */}
         <div className="flex justify-start">
           <div className="max-w-[80%] sm:max-w-[70%]">
             <div className="bg-white rounded-2xl rounded-tl-md px-4 py-3 shadow-sm border border-gray-100">
@@ -236,8 +212,8 @@ export default function CareGuide() {
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-gray-200 text-[11px] text-gray-500 shadow-sm">
                 <AlertTriangle size={12} className="text-amber-500" />
                 {flagged.length > 0
-                  ? `${flagged.length} flagged parameters from last lab report`
-                  : 'Lab report on file'}
+                  ? `${flagged.length} ${t('careGuide.flaggedParams')}`
+                  : t('careGuide.labReportOnFile')}
               </div>
             </div>
           );
@@ -255,7 +231,7 @@ export default function CareGuide() {
                 {msg.is_emergency && (
                   <div className="flex items-center gap-1.5 bg-red-500 text-white px-3 py-1.5 rounded-xl text-xs font-heading font-bold mb-1">
                     <AlertTriangle size={13} />
-                    EMERGENCY — Call 108 / 112
+                    {t('careGuide.emergencyCall')}
                   </div>
                 )}
 
@@ -275,7 +251,7 @@ export default function CareGuide() {
                   {isUser && msg.isVoice && (
                     <div className="flex items-center gap-1 mt-1.5 opacity-70">
                       <Mic size={11} />
-                      <span className="text-[10px]">Voice</span>
+                      <span className="text-[10px]">{t('common.voice')}</span>
                     </div>
                   )}
                 </div>
@@ -283,7 +259,7 @@ export default function CareGuide() {
                 {/* Audio player for assistant */}
                 {msg.audio_url && (
                   <div className="mt-1.5">
-                    <AudioPlayer audioUrl={msg.audio_url} label="Listen" autoPlay={isLastAssistant} />
+                    <AudioPlayer audioUrl={msg.audio_url} label={t('common.listen')} autoPlay={isLastAssistant} />
                   </div>
                 )}
 
@@ -307,7 +283,7 @@ export default function CareGuide() {
                     <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                     <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                   </span>
-                  <span className="text-xs text-gray-400 font-body">Thinking...</span>
+                  <span className="text-xs text-gray-400 font-body">{t('careGuide.thinking')}</span>
                 </div>
               </div>
             </div>
@@ -331,7 +307,7 @@ export default function CareGuide() {
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
             </span>
             <span className="text-xs text-red-600 font-heading font-semibold flex-1">
-              Recording {formatTime(recordDuration)} / 1:00
+              {t('careGuide.recording')} {formatTime(recordDuration)} / 1:00
             </span>
             {liveTranscript && (
               <span className="text-xs text-dark font-body italic truncate max-w-[60%]">{liveTranscript}</span>
@@ -340,7 +316,7 @@ export default function CareGuide() {
               onClick={stopRecording}
               className="text-xs bg-red-500 text-white px-3 py-1 rounded-lg font-heading font-semibold hover:bg-red-600 transition-colors"
             >
-              Send
+              {t('common.send')}
             </button>
           </div>
         </div>
@@ -362,7 +338,7 @@ export default function CareGuide() {
                 ? 'bg-red-500 text-white shadow-lg animate-pulse'
                 : 'bg-gray-100 text-gray-500 hover:bg-primary-50 hover:text-primary-500'
             } disabled:opacity-40`}
-            title={isRecording ? 'Stop recording' : 'Speak'}
+            title={isRecording ? t('medscribe.stopRecording') : t('common.speak')}
           >
             {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
           </button>
@@ -374,7 +350,7 @@ export default function CareGuide() {
               type="text"
               value={isRecording ? liveTranscript : textInput}
               onChange={(e) => !isRecording && setTextInput(e.target.value)}
-              placeholder={isRecording ? 'Listening...' : (PLACEHOLDERS[language] || PLACEHOLDERS.english)}
+              placeholder={isRecording ? t('careGuide.recording') : t('careGuide.askPlaceholder')}
               disabled={isLoading || isRecording}
               className="w-full px-4 py-2.5 rounded-2xl bg-gray-100 border border-gray-200 font-body text-sm text-dark focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-300 focus:bg-white disabled:opacity-50 placeholder:text-gray-400 transition-all"
             />
