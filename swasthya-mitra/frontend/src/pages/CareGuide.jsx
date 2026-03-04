@@ -1,29 +1,39 @@
 import { useState, useRef, useEffect } from 'react';
 import { Mic, MicOff, Phone, Keyboard, X, AlertTriangle, Droplets, FileText, Send } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { askCareGuide, askCareGuideText } from '../services/api';
+import { useNotifications } from '../context/NotificationContext';
+import { askCareGuideText } from '../services/api';
+import { saveInteraction, getLastLabReport } from '../services/dataStore';
+import { LANGUAGES } from '../utils/constants';
 import AudioPlayer from '../components/AudioPlayer';
 import Disclaimer from '../components/Disclaimer';
+import orbImage from '../../icons/image 96.png';
 
 const LOADING_STEPS = {
   hindi: ['आवाज़ रिकॉर्ड हो रही है...', 'भाषा समझी जा रही है...', 'उत्तर तैयार हो रहा है...', 'हिंदी में अनुवाद...', 'ऑडियो बनाया जा रहा है...'],
   tamil: ['குரல் பதிவாகிறது...', 'மொழி புரிந்துகொள்ளப்படுகிறது...', 'பதில் தயாராகிறது...', 'தமிழில் மொழிபெயர்ப்பு...', 'ஆடியோ உருவாக்கப்படுகிறது...'],
   english: ['Recording received...', 'Understanding your question...', 'Preparing answer...', 'Translating...', 'Generating audio...'],
+  telugu: ['రికార్డింగ్ అందింది...', 'మీ ప్రశ్నను అర్థం చేసుకుంటోంది...', 'సమాధానం తయారు చేస్తోంది...', 'అనువాదం...', 'ఆడియో తయారు చేస్తోంది...'],
+  kannada: ['ರೆಕಾರ್ಡಿಂಗ್ ಸ್ವೀಕರಿಸಲಾಗಿದೆ...', 'ನಿಮ್ಮ ಪ್ರಶ್ನೆಯನ್ನು ಅರ್ಥಮಾಡಿಕೊಳ್ಳುತ್ತಿದೆ...', 'ಉತ್ತರ ತಯಾರಿಸುತ್ತಿದೆ...', 'ಅನುವಾದಿಸುತ್ತಿದೆ...', 'ಆಡಿಯೋ ರಚಿಸುತ್ತಿದೆ...'],
+  malayalam: ['റെക്കോർഡിംഗ് ലഭിച്ചു...', 'നിങ്ങളുടെ ചോദ്യം മനസ്സിലാക്കുന്നു...', 'ഉത്തരം തയ്യാറാക്കുന്നു...', 'വിവർത്തനം ചെയ്യുന്നു...', 'ഓഡിയോ സൃഷ്ടിക്കുന്നു...'],
+  bengali: ['রেকর্ডিং পাওয়া গেছে...', 'আপনার প্রশ্ন বোঝা হচ্ছে...', 'উত্তর প্রস্তুত হচ্ছে...', 'অনুবাদ হচ্ছে...', 'অডিও তৈরি হচ্ছে...'],
+  marathi: ['रेकॉर्डिंग प्राप्त झाली...', 'तुमचा प्रश्न समजून घेत आहे...', 'उत्तर तयार करत आहे...', 'अनुवाद करत आहे...', 'ऑडिओ तयार करत आहे...'],
+  gujarati: ['રેકોર્ડિંગ મળી...', 'તમારો પ્રશ્ન સમજી રહ્યું છે...', 'જવાબ તૈયાર કરી રહ્યું છે...', 'અનુવાદ કરી રહ્યું છે...', 'ઓડિયો બનાવી રહ્યું છે...'],
 };
 
 const PLACEHOLDERS = {
   hindi: 'अपना सवाल टाइप करें...',
   tamil: 'உங்கள் கேள்வியை தட்டச்சு செய்யவும்...',
   english: 'Type your health question...',
+  telugu: 'మీ ఆరోగ్య ప్రశ్నను టైప్ చేయండి...',
+  kannada: 'ನಿಮ್ಮ ಆರೋಗ್ಯ ಪ್ರಶ್ನೆಯನ್ನು ಟೈಪ್ ಮಾಡಿ...',
+  malayalam: 'നിങ്ങളുടെ ആരോഗ്യ ചോദ്യം ടൈപ്പ് ചെയ്യുക...',
+  bengali: 'আপনার স্বাস্থ্য প্রশ্ন টাইপ করুন...',
+  marathi: 'तुमचा आरोग्य प्रश्न टाइप करा...',
+  gujarati: 'તમારો આરોગ્ય પ્રશ્ન ટાઈપ કરો...',
 };
 
-const HEALTH_CONTEXT = [
-  { icon: Droplets, label: 'Blood Group', value: 'B+' },
-  { icon: FileText, label: 'Last Report', value: 'Feb 15 — CBC' },
-  { icon: AlertTriangle, label: 'Flagged', value: 'Low Hemoglobin', warn: true },
-];
-
-/* ── AI Orb component (CSS-only glowing iridescent sphere) ── */
+/* ── AI Orb component (uses iridescent sphere image) ── */
 function AiOrb({ isActive, isLoading }) {
   return (
     <div className="relative w-16 h-16 group">
@@ -33,7 +43,7 @@ function AiOrb({ isActive, isLoading }) {
           isActive || isLoading ? 'opacity-100' : 'opacity-30 group-hover:opacity-50'
         }`}
         style={{
-          background: 'radial-gradient(circle, rgba(104,114,255,0.18) 0%, rgba(66,67,212,0.08) 50%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(104,114,255,0.22) 0%, rgba(66,67,212,0.10) 50%, transparent 70%)',
         }}
       />
 
@@ -63,53 +73,20 @@ function AiOrb({ isActive, isLoading }) {
         </div>
       )}
 
-      {/* Main orb body */}
-      <div
-        className={`w-full h-full rounded-full relative overflow-hidden transition-transform duration-300 ${
-          isActive || isLoading ? 'scale-105' : 'group-hover:scale-105'
+      {/* Main orb — PNG image */}
+      <img
+        src={orbImage}
+        alt="AI Assistant"
+        className={`w-full h-full rounded-full object-cover transition-transform duration-300 select-none pointer-events-none ${
+          isActive || isLoading ? 'scale-110' : 'group-hover:scale-105'
         }`}
         style={{
-          background: 'linear-gradient(135deg, #4243d4 0%, #6872ff 25%, #818aff 50%, #a3aaff 75%, #4243d4 100%)',
-          boxShadow: isActive || isLoading
-            ? '0 0 24px rgba(104,114,255,0.3), 0 0 48px rgba(104,114,255,0.15), inset 0 -4px 12px rgba(0,0,0,0.15)'
-            : '0 4px 20px rgba(0,0,0,0.12), inset 0 -4px 12px rgba(0,0,0,0.1)',
+          filter: isActive || isLoading
+            ? 'drop-shadow(0 0 18px rgba(104,114,255,0.35)) drop-shadow(0 0 40px rgba(104,114,255,0.15))'
+            : 'drop-shadow(0 4px 12px rgba(0,0,0,0.15))',
         }}
-      >
-        {/* Primary highlight — top-left refraction */}
-        <div
-          className="absolute inset-0 rounded-full"
-          style={{
-            background: 'radial-gradient(ellipse at 30% 25%, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.15) 30%, transparent 55%)',
-          }}
-        />
-
-        {/* Secondary highlight — bottom-right iridescence */}
-        <div
-          className="absolute inset-0 rounded-full opacity-50"
-          style={{
-            background: 'radial-gradient(ellipse at 70% 75%, rgba(104,114,255,0.6) 0%, rgba(163,170,255,0.2) 30%, transparent 55%)',
-          }}
-        />
-
-        {/* Rim light */}
-        <div
-          className="absolute inset-0 rounded-full"
-          style={{
-            background: 'radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.3) 0%, transparent 40%)',
-          }}
-        />
-
-        {/* Center inner glow when active */}
-        {(isActive || isLoading) && (
-          <div
-            className="absolute inset-0 rounded-full"
-            style={{
-              background: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.25) 0%, transparent 50%)',
-              animation: 'glow 2s ease-in-out infinite',
-            }}
-          />
-        )}
-      </div>
+        draggable={false}
+      />
     </div>
   );
 }
@@ -125,16 +102,33 @@ export default function CareGuide() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordDuration, setRecordDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
-  const mediaRecorderRef = useRef(null);
-  const chunksRef = useRef([]);
+  const [liveTranscript, setLiveTranscript] = useState('');
+  const recognitionRef = useRef(null);
   const timerRef = useRef(null);
   const messagesEndRef = useRef(null);
 
+  const { addNotification } = useNotifications();
+  const langConfig = LANGUAGES[language];
   const steps = LOADING_STEPS[language] || LOADING_STEPS.english;
+
+  // Dynamic health context from dataStore
+  const lastReport = getLastLabReport();
+  const userProfile = null; // from auth context if needed
+  const healthContext = [];
+  if (lastReport) {
+    const flagged = (lastReport.data?.parameters || []).filter(p => p.classification !== 'Normal');
+    healthContext.push(
+      { icon: FileText, label: 'Last Report', value: lastReport.title?.substring(0, 20) || 'Lab Report' },
+    );
+    if (flagged.length > 0) {
+      healthContext.push({ icon: AlertTriangle, label: 'Flagged', value: `${flagged.length} parameters`, warn: true });
+    }
+  }
 
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (recognitionRef.current) try { recognitionRef.current.abort(); } catch {}
     };
   }, []);
 
@@ -148,65 +142,95 @@ export default function CareGuide() {
       audio_url: data.audio_url, is_emergency: data.is_emergency,
     }]);
     if (data.session_id) setSessionId(data.session_id);
+    saveInteraction('care_guide', data);
+    addNotification('Health question answered', (data.answer_translated || data.answer).substring(0, 80), 'success', '/care-guide');
     scrollToBottom();
   };
 
-  /* ── Voice recording ── */
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm',
-      });
-      chunksRef.current = [];
-      mediaRecorderRef.current = mediaRecorder;
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        stream.getTracks().forEach((t) => t.stop());
-        handleVoiceSubmit(blob);
-      };
-
-      mediaRecorder.start(100);
-      setIsRecording(true);
-      setRecordDuration(0);
-      timerRef.current = setInterval(() => {
-        setRecordDuration((d) => {
-          if (d + 1 >= 60) { stopRecording(); return 60; }
-          return d + 1;
-        });
-      }, 1000);
-    } catch {
-      alert('Please allow microphone access to use voice input.');
+  /* ── Voice input using Web Speech API (browser-based STT) ── */
+  const startRecording = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Speech recognition is not supported in this browser. Please use Chrome.');
+      return;
     }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = langConfig?.speechCode || 'en-IN';
+    recognition.interimResults = true;
+    recognition.continuous = true;
+    recognition.maxAlternatives = 1;
+    recognitionRef.current = recognition;
+
+    let finalTranscript = '';
+
+    recognition.onresult = (event) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript + ' ';
+        } else {
+          interim += event.results[i][0].transcript;
+        }
+      }
+      setLiveTranscript((finalTranscript + interim).trim());
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      if (event.error === 'not-allowed') {
+        alert('Please allow microphone access to use voice input.');
+      }
+      setIsRecording(false);
+      setLiveTranscript('');
+      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    };
+
+    recognition.onend = () => {
+      // Auto-submit if we have text when recognition ends naturally
+      if (finalTranscript.trim() && isRecording) {
+        handleVoiceSubmit(finalTranscript.trim());
+      }
+      setIsRecording(false);
+      setLiveTranscript('');
+      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    };
+
+    recognition.start();
+    setIsRecording(true);
+    setLiveTranscript('');
+    setRecordDuration(0);
+    timerRef.current = setInterval(() => {
+      setRecordDuration((d) => {
+        if (d + 1 >= 60) { stopRecording(); return 60; }
+        return d + 1;
+      });
+    }, 1000);
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch {}
     }
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    // Submit whatever we have
+    if (liveTranscript.trim()) {
+      handleVoiceSubmit(liveTranscript.trim());
+    }
     setIsRecording(false);
+    setLiveTranscript('');
   };
 
-  const handleVoiceSubmit = async (audioBlob) => {
-    setMessages((prev) => [...prev, { role: 'user', text: 'Voice message', isVoice: true }]);
+  const handleVoiceSubmit = async (transcribedText) => {
+    if (!transcribedText || isLoading) return;
+    setMessages((prev) => [...prev, { role: 'user', text: transcribedText, isVoice: true }]);
     setIsLoading(true); setLoadingStep(0); scrollToBottom();
     const stepInterval = setInterval(() => { setLoadingStep((s) => Math.min(s + 1, 4)); }, 3000);
     try {
-      const data = await askCareGuide(audioBlob, language, 'demo-user', sessionId);
-      setMessages((prev) => {
-        const updated = [...prev];
-        updated[updated.length - 1] = { role: 'user', text: data.transcription || 'Voice message', isVoice: true };
-        return updated;
-      });
+      const data = await askCareGuideText(transcribedText, language, 'demo-user', sessionId);
       handleResponse(data);
     } catch (err) {
-      setMessages((prev) => [...prev, { role: 'assistant', text: err.response?.data?.message || 'Something went wrong. Please try again.', isError: true }]);
+      setMessages((prev) => [...prev, { role: 'assistant', text: err.response?.data?.detail || 'Something went wrong. Please try again.', isError: true }]);
     } finally { clearInterval(stepInterval); setIsLoading(false); }
   };
 
@@ -222,7 +246,7 @@ export default function CareGuide() {
       const data = await askCareGuideText(question, language, 'demo-user', sessionId);
       handleResponse(data);
     } catch (err) {
-      setMessages((prev) => [...prev, { role: 'assistant', text: err.response?.data?.message || 'Something went wrong. Please try again.', isError: true }]);
+      setMessages((prev) => [...prev, { role: 'assistant', text: err.response?.data?.detail || 'Something went wrong. Please try again.', isError: true }]);
     } finally { clearInterval(stepInterval); setIsLoading(false); }
   };
 
@@ -264,7 +288,12 @@ export default function CareGuide() {
           )}
         </div>
         <div className="flex gap-2 overflow-x-auto pb-0.5 -mb-0.5">
-          {HEALTH_CONTEXT.map(({ icon: Icon, label, value, warn }) => (
+          {healthContext.length === 0 && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/70 border border-white/80 shadow-premium">
+              <p className="text-[10px] text-warm-gray font-body">No health data yet. Use Lab Samjho to build your health context.</p>
+            </div>
+          )}
+          {healthContext.map(({ icon: Icon, label, value, warn }) => (
             <div
               key={label}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-full shrink-0 border transition-all ${
@@ -359,7 +388,7 @@ export default function CareGuide() {
                 {/* Audio player */}
                 {msg.audio_url && (
                   <div className="flex justify-center mt-3">
-                    <AudioPlayer audioUrl={msg.audio_url} label="Listen" compact />
+                    <AudioPlayer audioUrl={msg.audio_url} label="Listen" autoPlay={isLast && !isUser} />
                   </div>
                 )}
               </div>
@@ -406,6 +435,13 @@ export default function CareGuide() {
             </span>
             <div className="h-3 w-px bg-red-200" />
             <span className="text-[10px] text-red-400/80 font-body">max 60s</span>
+          </div>
+        )}
+
+        {/* Live transcript while recording */}
+        {isRecording && liveTranscript && (
+          <div className="max-w-[600px] mx-auto mb-3 px-4 py-2 bg-white/80 rounded-xl border border-primary-200/40 animate-fade-in">
+            <p className="text-sm text-dark font-body italic text-center">{liveTranscript}</p>
           </div>
         )}
 

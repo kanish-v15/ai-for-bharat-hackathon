@@ -1,0 +1,52 @@
+name: Deploy Frontend to Amplify
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'swasthya-mitra/frontend/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: swasthya-mitra/frontend/package-lock.json
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Install and build
+        run: |
+          cd swasthya-mitra/frontend
+          npm ci
+          npm run build
+        env:
+          VITE_API_BASE: https://b0mnqjemyg.execute-api.us-east-1.amazonaws.com/api
+
+      - name: Deploy to Amplify
+        run: |
+          cd swasthya-mitra/frontend/dist
+          zip -r /tmp/frontend-build.zip .
+          DEPLOYMENT=$(aws amplify create-deployment \
+            --app-id d3fjszaejwbmgd \
+            --branch-name main \
+            --output json)
+          UPLOAD_URL=$(echo $DEPLOYMENT | jq -r '.zipUploadUrl')
+          JOB_ID=$(echo $DEPLOYMENT | jq -r '.jobId')
+          curl -T /tmp/frontend-build.zip "$UPLOAD_URL"
+          aws amplify start-deployment \
+            --app-id d3fjszaejwbmgd \
+            --branch-name main \
+            --job-id $JOB_ID
+          echo "Frontend deployed to Amplify! Job: $JOB_ID"

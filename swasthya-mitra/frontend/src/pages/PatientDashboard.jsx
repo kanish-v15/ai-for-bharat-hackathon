@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import { getDashboardStats } from '../services/dataStore';
 import {
   FileText,
   MessageSquare,
   Stethoscope,
-  Languages,
   ArrowRight,
   Camera,
   Mic,
@@ -19,134 +20,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 
-/* ─── Data ─── */
-
-const STAT_CARDS = [
-  {
-    label: 'Reports Analyzed',
-    value: 12,
-    delta: '+3 this month',
-    icon: FileText,
-    accent: 'accent-bar-primary',
-    iconGradient: 'from-primary-400 to-primary-600',
-    iconBg: 'bg-primary-50',
-    ring: 'ring-primary-100',
-    size: 'large',
-  },
-  {
-    label: 'Questions Asked',
-    value: 8,
-    delta: '+2 this week',
-    icon: MessageSquare,
-    accent: 'accent-bar-teal',
-    iconGradient: 'from-emerald-400 to-teal-600',
-    iconBg: 'bg-emerald-50',
-    ring: 'ring-emerald-100',
-    size: 'large',
-  },
-  {
-    label: 'Doctor Visits',
-    value: 5,
-    delta: 'Last: Feb 24',
-    icon: Stethoscope,
-    accent: 'accent-bar-amber',
-    iconGradient: 'from-violet-400 to-purple-600',
-    iconBg: 'bg-violet-50',
-    ring: 'ring-violet-100',
-    size: 'small',
-  },
-  {
-    label: 'Languages Used',
-    value: 3,
-    delta: 'Hindi, Tamil, English',
-    icon: Languages,
-    accent: 'accent-bar-rose',
-    iconGradient: 'from-rose-400 to-pink-600',
-    iconBg: 'bg-rose-50',
-    ring: 'ring-rose-100',
-    size: 'small',
-  },
-];
-
-const QUICK_ACTIONS = [
-  {
-    title: 'Lab Samjho',
-    description: 'Upload & understand your lab reports instantly',
-    icon: Camera,
-    gradient: 'from-primary-500 to-primary-700',
-    lightBg: 'bg-primary-50',
-    to: '/lab-samjho',
-  },
-  {
-    title: 'Care Guide',
-    description: 'Ask health questions in your language',
-    icon: Mic,
-    gradient: 'from-india-green to-teal-500',
-    lightBg: 'bg-emerald-50',
-    to: '/care-guide',
-  },
-  {
-    title: 'Health Timeline',
-    description: 'View your complete health journey',
-    icon: Clock,
-    gradient: 'from-violet-500 to-purple-600',
-    lightBg: 'bg-violet-50',
-    to: '/health-timeline',
-  },
-];
-
-const ACTIVITY_DATA = [
-  {
-    type: 'Lab Report',
-    typeIcon: FileText,
-    typeBg: 'bg-primary-50',
-    typeColor: 'text-primary-600',
-    description: 'Complete Blood Count (CBC) analyzed',
-    date: 'Feb 28, 2026',
-    status: 'Analyzed',
-    statusColor: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
-  },
-  {
-    type: 'Question',
-    typeIcon: MessageSquare,
-    typeBg: 'bg-emerald-50',
-    typeColor: 'text-emerald-600',
-    description: '"Is my sugar level normal at 95 mg/dL?"',
-    date: 'Feb 26, 2026',
-    status: 'Answered',
-    statusColor: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
-  },
-  {
-    type: 'Visit',
-    typeIcon: Stethoscope,
-    typeBg: 'bg-violet-50',
-    typeColor: 'text-violet-600',
-    description: 'Follow-up with Dr. Priya Sharma',
-    date: 'Feb 24, 2026',
-    status: 'Visited',
-    statusColor: 'bg-violet-50 text-violet-700 ring-1 ring-violet-200',
-  },
-  {
-    type: 'Lab Report',
-    typeIcon: FileText,
-    typeBg: 'bg-primary-50',
-    typeColor: 'text-primary-600',
-    description: 'Lipid Panel — Cholesterol borderline high',
-    date: 'Feb 20, 2026',
-    status: 'Flagged',
-    statusColor: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
-  },
-  {
-    type: 'Question',
-    typeIcon: MessageSquare,
-    typeBg: 'bg-emerald-50',
-    typeColor: 'text-emerald-600',
-    description: '"What foods help reduce cholesterol?"',
-    date: 'Feb 18, 2026',
-    status: 'Answered',
-    statusColor: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
-  },
-];
+/* ─── Static Data ─── */
 
 const SCHEMES = [
   {
@@ -173,31 +47,150 @@ const SCHEMES = [
   },
 ];
 
-const DONUT_DATA = {
-  normal: 8,
-  borderline: 3,
-  critical: 1,
-  total: 12,
+/* ─── Activity type mappings ─── */
+
+const TYPE_ICONS = {
+  lab_report: FileText,
+  care_guide: MessageSquare,
+  medscribe: Stethoscope,
 };
+
+const TYPE_LABELS = {
+  lab_report: 'Lab Report',
+  care_guide: 'Care Guide',
+  medscribe: 'MedScribe',
+};
+
+const TYPE_STYLES = {
+  lab_report: { typeBg: 'bg-primary-50', typeColor: 'text-primary-600' },
+  care_guide: { typeBg: 'bg-emerald-50', typeColor: 'text-emerald-600' },
+  medscribe: { typeBg: 'bg-violet-50', typeColor: 'text-violet-600' },
+};
+
+const TYPE_STATUS = {
+  lab_report: { status: 'Analyzed', statusColor: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' },
+  care_guide: { status: 'Answered', statusColor: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
+  medscribe: { status: 'Documented', statusColor: 'bg-violet-50 text-violet-700 ring-1 ring-violet-200' },
+};
+
+/* ─── Helpers ─── */
+
+function formatDate(isoDate) {
+  try {
+    return new Date(isoDate).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  } catch {
+    return isoDate;
+  }
+}
 
 /* ─── Component ─── */
 
 export default function PatientDashboard() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
-  const normalPct = (DONUT_DATA.normal / DONUT_DATA.total) * 100;
-  const borderlinePct = (DONUT_DATA.borderline / DONUT_DATA.total) * 100;
+  const stats = getDashboardStats();
+  const recentActivity = stats.recentActivity;
 
-  const normalDeg = (DONUT_DATA.normal / DONUT_DATA.total) * 360;
-  const borderlineDeg = (DONUT_DATA.borderline / DONUT_DATA.total) * 360;
-  const criticalDeg = (DONUT_DATA.critical / DONUT_DATA.total) * 360;
+  /* ── Dynamic stat cards ── */
+  const statCards = [
+    {
+      label: t('dashboard.reportsAnalyzed'),
+      value: stats.totalReports,
+      delta: '',
+      icon: FileText,
+      accent: 'accent-bar-primary',
+      iconGradient: 'from-primary-400 to-primary-600',
+      iconBg: 'bg-primary-50',
+      ring: 'ring-primary-100',
+    },
+    {
+      label: t('dashboard.questionsAsked'),
+      value: stats.totalQuestions,
+      delta: '',
+      icon: MessageSquare,
+      accent: 'accent-bar-teal',
+      iconGradient: 'from-emerald-400 to-teal-600',
+      iconBg: 'bg-emerald-50',
+      ring: 'ring-emerald-100',
+    },
+    {
+      label: t('dashboard.consultations'),
+      value: stats.totalConsultations,
+      delta: '',
+      icon: Stethoscope,
+      accent: 'accent-bar-amber',
+      iconGradient: 'from-violet-400 to-purple-600',
+      iconBg: 'bg-violet-50',
+      ring: 'ring-violet-100',
+    },
+  ];
+
+  /* ── Quick actions with i18n ── */
+  const quickActions = [
+    {
+      title: t('common.labSamjho'),
+      description: t('labSamjho.subtitle'),
+      icon: Camera,
+      gradient: 'from-primary-500 to-primary-700',
+      lightBg: 'bg-primary-50',
+      to: '/lab-samjho',
+    },
+    {
+      title: t('common.careGuide'),
+      description: t('careGuide.subtitle'),
+      icon: Mic,
+      gradient: 'from-india-green to-teal-500',
+      lightBg: 'bg-emerald-50',
+      to: '/care-guide',
+    },
+    {
+      title: t('common.healthTimeline'),
+      description: t('healthTimeline.subtitle'),
+      icon: Clock,
+      gradient: 'from-violet-500 to-purple-600',
+      lightBg: 'bg-violet-50',
+      to: '/health-timeline',
+    },
+  ];
+
+  /* ── Chart data from dataStore ── */
+  const chartData = stats.chartData;
+  const total = chartData.normal + chartData.borderline + chartData.critical;
+
+  const normalPct = total > 0 ? (chartData.normal / total) * 100 : 0;
+  const borderlinePct = total > 0 ? (chartData.borderline / total) * 100 : 0;
+
+  const normalDeg = total > 0 ? (chartData.normal / total) * 360 : 0;
+  const borderlineDeg = total > 0 ? (chartData.borderline / total) * 360 : 0;
+  const criticalDeg = total > 0 ? (chartData.critical / total) * 360 : 0;
 
   const donutGradient = `conic-gradient(
     #0D6E6E 0deg ${normalDeg}deg,
     #F59E0B ${normalDeg}deg ${normalDeg + borderlineDeg}deg,
     #EF4444 ${normalDeg + borderlineDeg}deg ${normalDeg + borderlineDeg + criticalDeg}deg
   )`;
+
+  /* ── Map activity items ── */
+  const activityRows = recentActivity.map((item) => {
+    const typeStyle = TYPE_STYLES[item.type] || TYPE_STYLES.lab_report;
+    const typeStatus = TYPE_STATUS[item.type] || TYPE_STATUS.lab_report;
+    return {
+      typeIcon: TYPE_ICONS[item.type] || FileText,
+      typeLabel: TYPE_LABELS[item.type] || 'Interaction',
+      typeBg: typeStyle.typeBg,
+      typeColor: typeStyle.typeColor,
+      description: item.title,
+      date: formatDate(item.date),
+      status: typeStatus.status,
+      statusColor: typeStatus.statusColor,
+    };
+  });
 
   return (
     <div className="space-y-5">
@@ -217,7 +210,7 @@ export default function PatientDashboard() {
               <h1 className="font-display text-2xl lg:text-3xl text-dark tracking-tight leading-tight">
                 Welcome back,{' '}
                 <span className="italic text-primary-500">
-                  {user?.name || 'Ramesh'}
+                  {user?.name || 'User'}
                 </span>
               </h1>
               <p className="font-body text-warm-gray text-sm mt-1 max-w-lg">
@@ -240,8 +233,8 @@ export default function PatientDashboard() {
       </section>
 
       {/* ── Bento Stat Grid ── */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        {STAT_CARDS.map(
+      <section className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+        {statCards.map(
           (
             { label, value, delta, icon: Icon, accent, iconGradient, iconBg, ring },
             index
@@ -270,9 +263,11 @@ export default function PatientDashboard() {
                 <p className="font-heading font-medium text-xs text-dark/70 mt-0.5">
                   {label}
                 </p>
-                <p className="font-body text-[11px] text-warm-gray mt-1">
-                  {delta}
-                </p>
+                {delta && (
+                  <p className="font-body text-[11px] text-warm-gray mt-1">
+                    {delta}
+                  </p>
+                )}
               </div>
             </div>
           )
@@ -300,81 +295,99 @@ export default function PatientDashboard() {
                 </div>
               </div>
 
-              {/* Chart + Legend */}
-              <div className="flex flex-col sm:flex-row items-center gap-8">
-                {/* Donut Chart */}
-                <div className="relative w-40 h-40 shrink-0">
-                  <div
-                    className="w-40 h-40 rounded-full shadow-lg"
-                    style={{ background: donutGradient }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-24 h-24 bg-white rounded-full shadow-inner flex flex-col items-center justify-center">
-                      <span className="font-display text-2xl text-dark">
-                        {DONUT_DATA.total}
-                      </span>
-                      <span className="font-heading text-[10px] text-warm-gray font-medium uppercase tracking-wider">
-                        Total
-                      </span>
-                    </div>
+              {/* Chart + Legend OR Empty State */}
+              {total === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-4 ring-1 ring-gray-100">
+                    <Activity size={24} className="text-gray-300" />
                   </div>
+                  <p className="font-heading font-medium text-sm text-dark/60 max-w-xs">
+                    No lab reports analyzed yet. Upload a report to see your health overview.
+                  </p>
+                  <button
+                    onClick={() => navigate('/lab-samjho')}
+                    className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary-50 text-primary-600 text-xs font-heading font-semibold hover:bg-primary-100 transition-colors"
+                  >
+                    Upload Lab Report
+                    <ArrowRight size={12} />
+                  </button>
                 </div>
-
-                {/* Legend */}
-                <div className="flex flex-col gap-4 flex-1">
-                  {[
-                    {
-                      color: 'bg-india-green',
-                      ring: 'ring-emerald-200',
-                      count: DONUT_DATA.normal,
-                      label: 'Normal',
-                      pct: normalPct,
-                      desc: 'All values within healthy range',
-                    },
-                    {
-                      color: 'bg-amber-500',
-                      ring: 'ring-amber-200',
-                      count: DONUT_DATA.borderline,
-                      label: 'Borderline',
-                      pct: borderlinePct,
-                      desc: 'Slightly outside normal range',
-                    },
-                    {
-                      color: 'bg-red-500',
-                      ring: 'ring-red-200',
-                      count: DONUT_DATA.critical,
-                      label: 'Critical',
-                      pct: 100 - normalPct - borderlinePct,
-                      desc: 'Needs medical attention',
-                    },
-                  ].map(({ color, ring, count, label, pct, desc }) => (
-                    <div key={label} className="flex items-start gap-3">
-                      <span
-                        className={`mt-0.5 w-3 h-3 rounded-full ${color} ring-2 ${ring} shrink-0`}
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-baseline justify-between">
-                          <span className="font-heading font-semibold text-xs text-dark">
-                            {count} {label}
-                          </span>
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-gray-100 text-[10px] font-heading font-medium text-warm-gray">
-                            {Math.round(pct)}%
-                          </span>
-                        </div>
-                        <p className="font-body text-[11px] text-warm-gray mt-0.5">
-                          {desc}
-                        </p>
-                        <div className="mt-1.5 h-1 rounded-full bg-gray-100 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${color}`}
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-center gap-8">
+                  {/* Donut Chart */}
+                  <div className="relative w-40 h-40 shrink-0">
+                    <div
+                      className="w-40 h-40 rounded-full shadow-lg"
+                      style={{ background: donutGradient }}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-24 h-24 bg-white rounded-full shadow-inner flex flex-col items-center justify-center">
+                        <span className="font-display text-2xl text-dark">
+                          {total}
+                        </span>
+                        <span className="font-heading text-[10px] text-warm-gray font-medium uppercase tracking-wider">
+                          Total
+                        </span>
                       </div>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Legend */}
+                  <div className="flex flex-col gap-4 flex-1">
+                    {[
+                      {
+                        color: 'bg-india-green',
+                        ring: 'ring-emerald-200',
+                        count: chartData.normal,
+                        label: 'Normal',
+                        pct: normalPct,
+                        desc: 'All values within healthy range',
+                      },
+                      {
+                        color: 'bg-amber-500',
+                        ring: 'ring-amber-200',
+                        count: chartData.borderline,
+                        label: 'Borderline',
+                        pct: borderlinePct,
+                        desc: 'Slightly outside normal range',
+                      },
+                      {
+                        color: 'bg-red-500',
+                        ring: 'ring-red-200',
+                        count: chartData.critical,
+                        label: 'Critical',
+                        pct: 100 - normalPct - borderlinePct,
+                        desc: 'Needs medical attention',
+                      },
+                    ].map(({ color, ring, count, label, pct, desc }) => (
+                      <div key={label} className="flex items-start gap-3">
+                        <span
+                          className={`mt-0.5 w-3 h-3 rounded-full ${color} ring-2 ${ring} shrink-0`}
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-baseline justify-between">
+                            <span className="font-heading font-semibold text-xs text-dark">
+                              {count} {label}
+                            </span>
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-gray-100 text-[10px] font-heading font-medium text-warm-gray">
+                              {Math.round(pct)}%
+                            </span>
+                          </div>
+                          <p className="font-body text-[11px] text-warm-gray mt-0.5">
+                            {desc}
+                          </p>
+                          <div className="mt-1.5 h-1 rounded-full bg-gray-100 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${color}`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -387,7 +400,7 @@ export default function PatientDashboard() {
               <Sparkles size={15} className="text-primary-400" />
             </div>
 
-            {QUICK_ACTIONS.map(
+            {quickActions.map(
               ({ title, description, icon: Icon, gradient, lightBg, to }, index) => (
                 <button
                   key={title}
@@ -448,7 +461,10 @@ export default function PatientDashboard() {
                 </p>
               </div>
             </div>
-            <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-50 hover:bg-primary-50 text-xs font-heading font-medium text-warm-gray hover:text-primary-600 transition-all group">
+            <button
+              onClick={() => navigate('/health-timeline')}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-50 hover:bg-primary-50 text-xs font-heading font-medium text-warm-gray hover:text-primary-600 transition-all group"
+            >
               View All
               <ArrowRight
                 size={12}
@@ -457,102 +473,119 @@ export default function PatientDashboard() {
             </button>
           </div>
 
-          {/* Desktop Table */}
-          <div className="hidden md:block">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-cream/60">
-                  <th className="text-left text-[11px] font-heading font-semibold text-warm-gray uppercase tracking-wider px-5 py-2.5">
-                    Type
-                  </th>
-                  <th className="text-left text-[11px] font-heading font-semibold text-warm-gray uppercase tracking-wider px-5 py-2.5">
-                    Description
-                  </th>
-                  <th className="text-left text-[11px] font-heading font-semibold text-warm-gray uppercase tracking-wider px-5 py-2.5">
-                    Date
-                  </th>
-                  <th className="text-left text-[11px] font-heading font-semibold text-warm-gray uppercase tracking-wider px-5 py-2.5">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {ACTIVITY_DATA.map((item, index) => {
+          {activityRows.length === 0 ? (
+            /* Empty State */
+            <div className="flex flex-col items-center justify-center py-10 text-center px-5">
+              <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mb-3 ring-1 ring-gray-100">
+                <TrendingUp size={20} className="text-gray-300" />
+              </div>
+              <p className="font-heading font-medium text-sm text-dark/60 max-w-xs">
+                {t('dashboard.noActivity')}
+              </p>
+              <p className="font-body text-[11px] text-warm-gray mt-1">
+                Use Lab Samjho or Care Guide to get started.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Desktop Table */}
+              <div className="hidden md:block">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-cream/60">
+                      <th className="text-left text-[11px] font-heading font-semibold text-warm-gray uppercase tracking-wider px-5 py-2.5">
+                        Type
+                      </th>
+                      <th className="text-left text-[11px] font-heading font-semibold text-warm-gray uppercase tracking-wider px-5 py-2.5">
+                        Description
+                      </th>
+                      <th className="text-left text-[11px] font-heading font-semibold text-warm-gray uppercase tracking-wider px-5 py-2.5">
+                        Date
+                      </th>
+                      <th className="text-left text-[11px] font-heading font-semibold text-warm-gray uppercase tracking-wider px-5 py-2.5">
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activityRows.map((item, index) => {
+                      const TypeIcon = item.typeIcon;
+                      return (
+                        <tr
+                          key={index}
+                          className="border-t border-gray-100/60 hover:bg-cream/40 transition-colors group cursor-default"
+                        >
+                          <td className="px-5 py-3">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className={`w-7 h-7 ${item.typeBg} rounded-md flex items-center justify-center ring-1 ring-black/[0.03]`}
+                              >
+                                <TypeIcon size={13} className={item.typeColor} />
+                              </div>
+                              <span className="font-heading font-medium text-xs text-dark">
+                                {item.typeLabel}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-5 py-3">
+                            <span className="font-body text-xs text-dark/70 group-hover:text-dark transition-colors">
+                              {item.description}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3">
+                            <span className="font-body text-xs text-warm-gray">
+                              {item.date}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-heading font-medium ${item.statusColor}`}
+                            >
+                              {item.status}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Cards */}
+              <div className="md:hidden divide-y divide-gray-100/60">
+                {activityRows.map((item, index) => {
                   const TypeIcon = item.typeIcon;
                   return (
-                    <tr
+                    <div
                       key={index}
-                      className="border-t border-gray-100/60 hover:bg-cream/40 transition-colors group cursor-default"
+                      className="px-4 py-3 flex items-start gap-3 hover:bg-cream/30 transition-colors"
                     >
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`w-7 h-7 ${item.typeBg} rounded-md flex items-center justify-center ring-1 ring-black/[0.03]`}
+                      <div
+                        className={`w-8 h-8 ${item.typeBg} rounded-lg flex items-center justify-center shrink-0 ring-1 ring-black/[0.03]`}
+                      >
+                        <TypeIcon size={14} className={item.typeColor} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-heading font-medium text-xs text-dark leading-snug">
+                          {item.description}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span className="font-body text-[11px] text-warm-gray">
+                            {item.date}
+                          </span>
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-heading font-medium ${item.statusColor}`}
                           >
-                            <TypeIcon size={13} className={item.typeColor} />
-                          </div>
-                          <span className="font-heading font-medium text-xs text-dark">
-                            {item.type}
+                            {item.status}
                           </span>
                         </div>
-                      </td>
-                      <td className="px-5 py-3">
-                        <span className="font-body text-xs text-dark/70 group-hover:text-dark transition-colors">
-                          {item.description}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3">
-                        <span className="font-body text-xs text-warm-gray">
-                          {item.date}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-heading font-medium ${item.statusColor}`}
-                        >
-                          {item.status}
-                        </span>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile Cards */}
-          <div className="md:hidden divide-y divide-gray-100/60">
-            {ACTIVITY_DATA.map((item, index) => {
-              const TypeIcon = item.typeIcon;
-              return (
-                <div
-                  key={index}
-                  className="px-4 py-3 flex items-start gap-3 hover:bg-cream/30 transition-colors"
-                >
-                  <div
-                    className={`w-8 h-8 ${item.typeBg} rounded-lg flex items-center justify-center shrink-0 ring-1 ring-black/[0.03]`}
-                  >
-                    <TypeIcon size={14} className={item.typeColor} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-heading font-medium text-xs text-dark leading-snug">
-                      {item.description}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <span className="font-body text-[11px] text-warm-gray">
-                        {item.date}
-                      </span>
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-heading font-medium ${item.statusColor}`}
-                      >
-                        {item.status}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+              </div>
+            </>
+          )}
         </div>
       </section>
 

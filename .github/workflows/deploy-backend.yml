@@ -1,0 +1,55 @@
+name: Deploy Backend Lambda
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'swasthya-mitra/backend/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Install dependencies
+        run: |
+          cd swasthya-mitra/backend
+          pip install -r requirements.txt -t package/
+
+      - name: Package Lambda
+        run: |
+          cd swasthya-mitra/backend
+          cp -r app package/
+          cd package
+          zip -r ../lambda-deploy.zip . -x '*.pyc' '__pycache__/*'
+
+      - name: Upload to S3
+        run: |
+          aws s3 cp swasthya-mitra/backend/lambda-deploy.zip \
+            s3://swasthyamitra-uploads/deploy/lambda-deploy.zip
+
+      - name: Update Lambda function
+        run: |
+          aws lambda update-function-code \
+            --function-name swasthyamitra-backend \
+            --s3-bucket swasthyamitra-uploads \
+            --s3-key deploy/lambda-deploy.zip
+
+      - name: Wait for update
+        run: |
+          aws lambda wait function-updated \
+            --function-name swasthyamitra-backend
+          echo "Lambda updated successfully!"

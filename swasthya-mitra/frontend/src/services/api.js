@@ -56,6 +56,15 @@ export async function processMedScribe(audioBlob, language, doctorId = 'demo-doc
   return data;
 }
 
+export async function processMedScribeText(text, language, doctorId = 'demo-doctor') {
+  const { data } = await api.post('/medscribe/process-text', {
+    text,
+    language,
+    doctor_id: doctorId,
+  });
+  return data;
+}
+
 export async function updateMedScribe(interactionId, soapNote, confirmedMedications) {
   const { data } = await api.put(`/medscribe/update/${interactionId}`, {
     soap_note: soapNote,

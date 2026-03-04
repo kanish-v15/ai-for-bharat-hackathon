@@ -19,7 +19,9 @@ import {
   Shield,
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { useNotifications } from '../context/NotificationContext';
 import { analyzeLabReport } from '../services/api';
+import { saveInteraction, getInteractions } from '../services/dataStore';
 import AudioPlayer from '../components/AudioPlayer';
 import Disclaimer from '../components/Disclaimer';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -29,6 +31,12 @@ const LOADING_STEPS = {
   hindi: ['रिपोर्ट अपलोड हो रही है...', 'रिपोर्ट पढ़ी जा रही है...', 'पैरामीटर का विश्लेषण...', 'हिंदी में अनुवाद...', 'ऑडियो बनाया जा रहा है...'],
   tamil: ['அறிக்கை பதிவேற்றப்படுகிறது...', 'அறிக்கை படிக்கப்படுகிறது...', 'அளவுருக்கள் பகுப்பாய்வு...', 'தமிழில் மொழிபெயர்ப்பு...', 'ஆடியோ உருவாக்கப்படுகிறது...'],
   english: ['Uploading report...', 'Reading your report...', 'Analyzing parameters...', 'Translating...', 'Generating audio...'],
+  telugu: ['నివేదిక అప్‌లోడ్ అవుతోంది...', 'నివేదిక చదవబడుతోంది...', 'పరామితులు విశ్లేషించబడుతున్నాయి...', 'అనువాదం...', 'ఆడియో తయారు చేస్తోంది...'],
+  kannada: ['ವರದಿ ಅಪ್‌ಲೋಡ್ ಆಗುತ್ತಿದೆ...', 'ವರದಿ ಓದಲಾಗುತ್ತಿದೆ...', 'ನಿಯತಾಂಕಗಳನ್ನು ವಿಶ್ಲೇಷಿಸಲಾಗುತ್ತಿದೆ...', 'ಅನುವಾದಿಸುತ್ತಿದೆ...', 'ಆಡಿಯೋ ರಚಿಸುತ್ತಿದೆ...'],
+  malayalam: ['റിപ്പോർട്ട് അപ്‌ലോഡ് ചെയ്യുന്നു...', 'റിപ്പോർട്ട് വായിക്കുന്നു...', 'പരാമീറ്ററുകൾ വിശകലനം ചെയ്യുന്നു...', 'വിവർത്തനം ചെയ്യുന്നു...', 'ഓഡിയോ സൃഷ്ടിക്കുന്നു...'],
+  bengali: ['রিপোর্ট আপলোড হচ্ছে...', 'রিপোর্ট পড়া হচ্ছে...', 'প্যারামিটার বিশ্লেষণ হচ্ছে...', 'অনুবাদ হচ্ছে...', 'অডিও তৈরি হচ্ছে...'],
+  marathi: ['अहवाल अपलोड होत आहे...', 'अहवाल वाचला जात आहे...', 'पॅरामीटर्सचे विश्लेषण...', 'अनुवाद करत आहे...', 'ऑडिओ तयार करत आहे...'],
+  gujarati: ['રિપોર્ટ અપલોડ થઈ રહ્યો છે...', 'રિપોર્ટ વાંચાઈ રહ્યો છે...', 'પેરામીટર્સનું વિશ્લેષણ...', 'અનુવાદ થઈ રહ્યો છે...', 'ઓડિયો બનાવાઈ રહ્યો છે...'],
 };
 
 const FLOW_STEPS = [
@@ -36,12 +44,6 @@ const FLOW_STEPS = [
   { num: 2, label: 'AI Analysis' },
   { num: 3, label: 'Results' },
   { num: 4, label: 'Audio' },
-];
-
-const PREV_REPORTS = [
-  { name: 'Blood Test - CBC', date: 'Feb 15, 2026' },
-  { name: 'Lipid Profile', date: 'Jan 20, 2026' },
-  { name: 'Thyroid Panel (T3, T4)', date: 'Dec 10, 2025' },
 ];
 
 const HOW_IT_WORKS = [
@@ -53,7 +55,9 @@ const HOW_IT_WORKS = [
 
 export default function LabSamjho() {
   const { language } = useLanguage();
+  const { addNotification } = useNotifications();
   const fileInputRef = useRef(null);
+  const previousReports = getInteractions('lab_report').slice(0, 5);
   const [selectedImage, setSelectedImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -82,8 +86,12 @@ export default function LabSamjho() {
     try {
       const data = await analyzeLabReport(selectedImage, language);
       setResult(data);
+      saveInteraction('lab_report', data);
+      const paramCount = data.parameters?.length || 0;
+      const flagged = data.parameters?.filter(p => p.classification !== 'Normal').length || 0;
+      addNotification('Lab report analyzed', `${paramCount} parameters found, ${flagged} flagged`, flagged > 0 ? 'warning' : 'success', '/lab-samjho');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to analyze report. Please try again.');
+      setError(err.response?.data?.detail || 'Failed to analyze report. Please try again.');
     } finally {
       clearInterval(stepInterval);
       setIsLoading(false);
@@ -100,49 +108,46 @@ export default function LabSamjho() {
   return (
     <div className="animate-slide-up">
       {/* ── Page Header ── */}
-      <div className="mb-6 animate-stagger-1">
-        <h1 className="font-display text-2xl md:text-2xl text-dark tracking-tight leading-tight">
+      <div className="mb-3 animate-stagger-1">
+        <h1 className="font-display text-xl text-dark tracking-tight leading-tight">
           Lab <span className="italic text-primary-500">Samjho</span>
         </h1>
-        <p className="font-body text-warm-gray text-sm mt-1 max-w-lg">
-          Upload your lab report and get an AI-powered analysis with plain-language
-          explanations in your preferred language.
+        <p className="font-body text-warm-gray text-xs mt-0.5 max-w-lg">
+          Upload your lab report for AI-powered analysis in your language.
         </p>
       </div>
 
       {/* ── Horizontal Stepper ── */}
-      <div className="animate-stagger-2 mb-8">
+      <div className="animate-stagger-2 mb-4">
         <div className="flex items-center justify-center">
           {FLOW_STEPS.map(({ num, label }, i) => {
             const isCompleted = num <= currentStep;
             const isActive = num === currentStep + 1;
-            const isUpcoming = num > currentStep + 1;
 
             return (
               <div key={num} className="flex items-center">
-                {/* Step node */}
-                <div className="flex flex-col items-center gap-1.5">
+                <div className="flex flex-col items-center gap-1">
                   <div
                     className={`
-                      w-8 h-8 rounded-full flex items-center justify-center text-xs font-heading font-bold
+                      w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-heading font-bold
                       transition-all duration-500 ease-out
                       ${isCompleted
-                        ? 'bg-india-green text-white shadow-md shadow-india-green/20'
+                        ? 'bg-india-green text-white shadow-sm shadow-india-green/20'
                         : isActive
-                          ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/30 ring-4 ring-primary-100'
+                          ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-md shadow-primary-500/30 ring-2 ring-primary-100'
                           : 'bg-cream-dark text-warm-gray/50'
                       }
                     `}
                   >
                     {isCompleted ? (
-                      <CheckCircle size={15} strokeWidth={2.5} />
+                      <CheckCircle size={12} strokeWidth={2.5} />
                     ) : (
                       <span>{num}</span>
                     )}
                   </div>
                   <span
                     className={`
-                      text-[10px] font-heading font-semibold tracking-wide uppercase transition-colors duration-300
+                      text-[9px] font-heading font-semibold tracking-wide uppercase transition-colors duration-300
                       ${isCompleted
                         ? 'text-india-green'
                         : isActive
@@ -155,9 +160,8 @@ export default function LabSamjho() {
                   </span>
                 </div>
 
-                {/* Connector line */}
                 {i < FLOW_STEPS.length - 1 && (
-                  <div className="relative w-12 sm:w-20 h-0.5 mx-2 mb-6">
+                  <div className="relative w-10 sm:w-16 h-0.5 mx-1.5 mb-5">
                     <div className="absolute inset-0 bg-cream-dark rounded-full" />
                     <div
                       className={`
@@ -174,10 +178,10 @@ export default function LabSamjho() {
       </div>
 
       {/* ── Main Grid ── */}
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-4">
 
         {/* ── Left Column (2/3) ── */}
-        <div className="lg:col-span-2 space-y-5">
+        <div className="lg:col-span-2 space-y-3">
 
           {/* ── Upload Area ── */}
           {!result && !isLoading && (
@@ -191,30 +195,38 @@ export default function LabSamjho() {
                 `}
               >
                 {previewUrl ? (
-                  <div className="p-6 space-y-5">
-                    {/* Preview image */}
+                  <div className="p-4 space-y-3">
+                    {/* Preview */}
                     <div className="relative rounded-xl overflow-hidden bg-cream ring-1 ring-cream-dark">
-                      <img
-                        src={previewUrl}
-                        alt="Lab report preview"
-                        className="w-full max-h-80 object-contain"
-                      />
-                      <div className="absolute top-3 right-3">
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-heading font-semibold bg-white/90 backdrop-blur-sm text-india-green px-2.5 py-1 rounded-full shadow-sm ring-1 ring-india-green/10">
-                          <CheckCircle size={11} />
-                          Ready to analyze
+                      {selectedImage?.type === 'application/pdf' ? (
+                        <div className="flex flex-col items-center justify-center py-8 gap-2">
+                          <FileScan size={36} className="text-primary-500" />
+                          <p className="text-xs font-heading font-semibold text-dark">{selectedImage.name}</p>
+                          <p className="text-[10px] font-body text-warm-gray">PDF document ready</p>
+                        </div>
+                      ) : (
+                        <img
+                          src={previewUrl}
+                          alt="Lab report preview"
+                          className="w-full max-h-56 object-contain"
+                        />
+                      )}
+                      <div className="absolute top-2 right-2">
+                        <span className="inline-flex items-center gap-1 text-[9px] font-heading font-semibold bg-white/90 backdrop-blur-sm text-india-green px-2 py-0.5 rounded-full shadow-sm ring-1 ring-india-green/10">
+                          <CheckCircle size={10} />
+                          Ready
                         </span>
                       </div>
                     </div>
 
                     {/* Action buttons */}
-                    <div className="flex gap-3">
+                    <div className="flex gap-2">
                       <button
                         onClick={handleAnalyze}
                         disabled={isLoading}
                         className="
                           flex-1 bg-gradient-to-r from-primary-500 to-primary-600 text-white
-                          px-6 py-3 rounded-xl font-heading font-bold text-sm
+                          px-4 py-2.5 rounded-xl font-heading font-bold text-xs
                           hover:from-primary-600 hover:to-primary-700
                           active:scale-[0.98] disabled:opacity-50
                           transition-all duration-200
@@ -222,69 +234,65 @@ export default function LabSamjho() {
                           shadow-lg shadow-primary-500/25
                         "
                       >
-                        <Sparkles size={15} />
+                        <Sparkles size={14} />
                         Analyze Report
                       </button>
                       <button
                         onClick={handleReset}
                         disabled={isLoading}
                         className="
-                          px-4 py-3 rounded-xl
-                          border border-cream-dark text-warm-gray font-heading font-semibold text-sm
+                          px-3 py-2.5 rounded-xl
+                          border border-cream-dark text-warm-gray font-heading font-semibold text-xs
                           hover:bg-cream hover:border-warm-gray/30
                           active:scale-[0.98] disabled:opacity-50
                           transition-all duration-200
                         "
                       >
-                        <RotateCcw size={15} />
+                        <RotateCcw size={14} />
                       </button>
                     </div>
                   </div>
                 ) : (
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full p-8 flex flex-col items-center gap-4 cursor-pointer group"
+                    className="w-full p-4 flex flex-col items-center gap-2 cursor-pointer group"
                   >
-                    {/* Upload icon with primary gradient circle */}
                     <div className="relative">
-                      <div className="w-14 h-14 bg-gradient-to-br from-primary-400 to-primary-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-500/20 group-hover:shadow-xl group-hover:shadow-primary-500/30 group-hover:scale-105 transition-all duration-300">
-                        <Upload size={26} className="text-white" strokeWidth={1.8} />
+                      <div className="w-9 h-9 bg-gradient-to-br from-primary-400 to-primary-600 rounded-xl flex items-center justify-center shadow-md shadow-primary-500/20 group-hover:shadow-lg group-hover:scale-105 transition-all duration-300">
+                        <Upload size={16} className="text-white" strokeWidth={1.8} />
                       </div>
-                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-india-green rounded-lg flex items-center justify-center shadow-md">
-                        <Sparkles size={12} className="text-white" />
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-india-green rounded-md flex items-center justify-center shadow-sm">
+                        <Sparkles size={8} className="text-white" />
                       </div>
                     </div>
 
-                    {/* Text */}
-                    <div className="text-center space-y-1.5">
-                      <p className="font-heading font-bold text-lg text-dark tracking-tight">
+                    <div className="text-center space-y-0.5">
+                      <p className="font-heading font-bold text-xs text-dark tracking-tight">
                         Upload Your Lab Report
                       </p>
-                      <p className="font-body text-xs text-warm-gray max-w-xs mx-auto">
-                        Take a photo or choose a file from your device.
-                        We support JPEG, PNG, and PDF formats.
+                      <p className="font-body text-[10px] text-warm-gray">
+                        Photo, JPEG, PNG, or PDF
                       </p>
                     </div>
 
-                    {/* File format pills */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       {[
                         { icon: Camera, label: 'Camera' },
-                        { icon: ImageIcon, label: 'JPEG / PNG' },
+                        { icon: ImageIcon, label: 'Image' },
                         { icon: FileScan, label: 'PDF' },
                       ].map(({ icon: Icon, label }) => (
                         <span
                           key={label}
                           className="
-                            inline-flex items-center gap-1.5
-                            text-[10px] font-heading font-medium text-warm-gray
+                            inline-flex items-center gap-1
+                            text-[9px] font-heading font-medium text-warm-gray
                             bg-cream border border-cream-dark
-                            px-3 py-1.5 rounded-full
+                            px-1.5 py-0.5 rounded-full
                             group-hover:border-primary-200 group-hover:bg-primary-50/50
                             transition-colors duration-200
                           "
                         >
-                          <Icon size={12} className="text-primary-500" />
+                          <Icon size={9} className="text-primary-500" />
                           {label}
                         </span>
                       ))}
@@ -306,16 +314,16 @@ export default function LabSamjho() {
           {/* ── Loading State ── */}
           {isLoading && (
             <div className="animate-stagger-3">
-              <div className="noise bg-white rounded-2xl border border-cream-dark shadow-premium p-8">
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="w-9 h-9 bg-gradient-to-br from-primary-400 to-primary-600 rounded-xl flex items-center justify-center shadow-md shadow-primary-500/20">
-                    <Activity size={16} className="text-white animate-pulse" />
+              <div className="noise bg-white rounded-2xl border border-cream-dark shadow-premium p-5">
+                <div className="flex items-center gap-2.5 mb-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-xl flex items-center justify-center shadow-md shadow-primary-500/20">
+                    <Activity size={14} className="text-white animate-pulse" />
                   </div>
                   <div>
-                    <h3 className="font-heading font-bold text-dark text-sm">
+                    <h3 className="font-heading font-bold text-dark text-xs">
                       Analyzing Your Report
                     </h3>
-                    <p className="text-[11px] font-body text-warm-gray mt-0.5">
+                    <p className="text-[10px] font-body text-warm-gray mt-0.5">
                       AI is reading and interpreting your lab values
                     </p>
                   </div>
@@ -526,7 +534,7 @@ export default function LabSamjho() {
                     </div>
                   </div>
                   <div className="pl-[46px]">
-                    <AudioPlayer audioUrl={result.audio_url} label="Listen to explanation" />
+                    <AudioPlayer audioUrl={result.audio_url} label="Listen to explanation" autoPlay />
                   </div>
                 </div>
               )}
@@ -569,39 +577,42 @@ export default function LabSamjho() {
         </div>
 
         {/* ── Right Sidebar (1/3) ── */}
-        <div className="space-y-5">
+        <div className="space-y-3">
 
           {/* Previous Reports */}
-          <div className="animate-stagger-4 noise bg-white rounded-2xl border border-cream-dark shadow-premium p-4">
-            <h4 className="font-heading font-bold text-dark text-sm flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-xl flex items-center justify-center shadow-sm shadow-primary-500/15">
-                <Clock size={14} className="text-white" />
+          <div className="animate-stagger-4 noise bg-white rounded-2xl border border-cream-dark shadow-premium p-3">
+            <h4 className="font-heading font-bold text-dark text-xs flex items-center gap-2 mb-2.5">
+              <div className="w-7 h-7 bg-gradient-to-br from-primary-400 to-primary-600 rounded-lg flex items-center justify-center shadow-sm shadow-primary-500/15">
+                <Clock size={12} className="text-white" />
               </div>
               Previous Reports
             </h4>
             <div className="space-y-1">
-              {PREV_REPORTS.map(({ name, date }, i) => {
+              {previousReports.length === 0 ? (
+                <p className="text-[11px] font-body text-warm-gray px-2 py-3 text-center">No previous reports</p>
+              ) : previousReports.map((report, i) => {
                 const staggerClass = `animate-stagger-${Math.min(i + 4, 6)}`;
+                const date = new Date(report.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
                 return (
                   <div
-                    key={name}
+                    key={report.id}
                     className={`
                       ${staggerClass}
-                      flex items-center gap-2.5 p-2.5 rounded-xl
+                      flex items-center gap-2 p-2 rounded-lg
                       hover:bg-cream transition-all duration-200 cursor-pointer group
                     `}
                   >
-                    <div className="w-8 h-8 bg-cream rounded-xl flex items-center justify-center shrink-0 group-hover:bg-primary-50 group-hover:ring-1 group-hover:ring-primary-200 transition-all duration-200">
-                      <FileText size={14} className="text-warm-gray group-hover:text-primary-500 transition-colors" />
+                    <div className="w-7 h-7 bg-cream rounded-lg flex items-center justify-center shrink-0 group-hover:bg-primary-50 group-hover:ring-1 group-hover:ring-primary-200 transition-all duration-200">
+                      <FileText size={12} className="text-warm-gray group-hover:text-primary-500 transition-colors" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-heading font-semibold text-dark truncate">
-                        {name}
+                      <p className="text-[11px] font-heading font-semibold text-dark truncate">
+                        {report.title}
                       </p>
-                      <p className="text-[10px] font-body text-warm-gray mt-0.5">{date}</p>
+                      <p className="text-[9px] font-body text-warm-gray mt-0.5">{date}</p>
                     </div>
                     <ArrowRight
-                      size={13}
+                      size={11}
                       className="text-cream-dark group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all duration-200 shrink-0"
                     />
                   </div>
@@ -611,20 +622,20 @@ export default function LabSamjho() {
           </div>
 
           {/* How It Works */}
-          <div className="animate-stagger-5 noise bg-white rounded-2xl border border-cream-dark shadow-premium p-4">
-            <h4 className="font-heading font-bold text-dark text-sm flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-india-green to-india-green-light rounded-xl flex items-center justify-center shadow-sm shadow-india-green/15">
-                <Info size={14} className="text-white" />
+          <div className="animate-stagger-5 noise bg-white rounded-2xl border border-cream-dark shadow-premium p-3">
+            <h4 className="font-heading font-bold text-dark text-xs flex items-center gap-2 mb-2.5">
+              <div className="w-7 h-7 bg-gradient-to-br from-india-green to-india-green-light rounded-lg flex items-center justify-center shadow-sm shadow-india-green/15">
+                <Info size={12} className="text-white" />
               </div>
               How It Works
             </h4>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {HOW_IT_WORKS.map((step, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <span className="w-6 h-6 bg-primary-50 border border-primary-200 rounded-full flex items-center justify-center text-[10px] font-heading font-bold text-primary-600 shrink-0 mt-0.5">
+                <div key={i} className="flex items-start gap-2">
+                  <span className="w-5 h-5 bg-primary-50 border border-primary-200 rounded-full flex items-center justify-center text-[9px] font-heading font-bold text-primary-600 shrink-0 mt-0.5">
                     {i + 1}
                   </span>
-                  <p className="text-xs font-body text-dark/70 leading-relaxed pt-0.5">
+                  <p className="text-[11px] font-body text-dark/70 leading-relaxed pt-0.5">
                     {step}
                   </p>
                 </div>
@@ -633,10 +644,10 @@ export default function LabSamjho() {
           </div>
 
           {/* Powered By - Tech Stack Pills */}
-          <div className="animate-stagger-6 noise bg-white rounded-2xl border border-cream-dark shadow-premium p-4">
-            <h4 className="font-heading font-bold text-dark text-sm flex items-center gap-2.5 mb-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-dark to-dark-muted rounded-xl flex items-center justify-center shadow-sm">
-                <Shield size={14} className="text-white" />
+          <div className="animate-stagger-6 noise bg-white rounded-2xl border border-cream-dark shadow-premium p-3">
+            <h4 className="font-heading font-bold text-dark text-xs flex items-center gap-2 mb-2">
+              <div className="w-7 h-7 bg-gradient-to-br from-dark to-dark-muted rounded-lg flex items-center justify-center shadow-sm">
+                <Shield size={12} className="text-white" />
               </div>
               Powered By
             </h4>

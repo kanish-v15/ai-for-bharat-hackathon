@@ -7,6 +7,12 @@ LANGUAGE_CODES = {
     "hindi": "hi-IN",
     "tamil": "ta-IN",
     "english": "en-IN",
+    "telugu": "te-IN",
+    "kannada": "kn-IN",
+    "malayalam": "ml-IN",
+    "bengali": "bn-IN",
+    "marathi": "mr-IN",
+    "gujarati": "gu-IN",
 }
 
 HEADERS = {
@@ -49,9 +55,11 @@ async def text_to_speech(text: str, language: str = "hindi") -> bytes:
                 f"{settings.sarvam_api_base}/text-to-speech",
                 headers=HEADERS,
                 json={
-                    "input": chunk,
+                    "text": chunk,
                     "target_language_code": lang_code,
-                    "model": "bulbul:v2",
+                    "model": "bulbul:v3",
+                    "speaker": "pooja",
+                    "speech_sample_rate": 22050,
                     "enable_preprocessing": True,
                 },
             )

@@ -1,28 +1,32 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Heart, LayoutDashboard, FileText, Mic, Clock, Settings,
-         Stethoscope, Languages, HelpCircle, LogOut, X } from 'lucide-react';
+         Stethoscope, Languages, HelpCircle, LogOut, X, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const PATIENT_NAV = [
-  { to: '/patient', icon: LayoutDashboard, label: 'Dashboard', exact: true },
-  { to: '/lab-samjho', icon: FileText, label: 'Lab Samjho' },
-  { to: '/care-guide', icon: Mic, label: 'Care Guide' },
-  { to: '/health-timeline', icon: Clock, label: 'Health Timeline' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
+  { to: '/patient', icon: LayoutDashboard, labelKey: 'common.dashboard', fallback: 'Dashboard', exact: true },
+  { to: '/lab-samjho', icon: FileText, labelKey: 'common.labSamjho', fallback: 'Lab Samjho' },
+  { to: '/care-guide', icon: Mic, labelKey: 'common.careGuide', fallback: 'Care Guide' },
+  { to: '/health-timeline', icon: Clock, labelKey: 'common.healthTimeline', fallback: 'Health Timeline' },
+  { to: '/profile', icon: User, labelKey: 'common.profile', fallback: 'Profile' },
+  { to: '/settings', icon: Settings, labelKey: 'common.settings', fallback: 'Settings' },
 ];
 
 const DOCTOR_NAV = [
-  { to: '/doctor', icon: LayoutDashboard, label: 'Dashboard', exact: true },
-  { to: '/medscribe', icon: Stethoscope, label: 'MedScribe' },
-  { to: '/lab-samjho', icon: FileText, label: 'Lab Samjho' },
-  { to: '/care-guide', icon: Languages, label: 'Patient Translator' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
+  { to: '/doctor', icon: LayoutDashboard, labelKey: 'common.dashboard', fallback: 'Dashboard', exact: true },
+  { to: '/medscribe', icon: Stethoscope, labelKey: 'common.medscribe', fallback: 'MedScribe' },
+  { to: '/lab-samjho', icon: FileText, labelKey: 'common.labSamjho', fallback: 'Lab Samjho' },
+  { to: '/care-guide', icon: Languages, labelKey: 'common.careGuide', fallback: 'Care Guide' },
+  { to: '/profile', icon: User, labelKey: 'common.profile', fallback: 'Profile' },
+  { to: '/settings', icon: Settings, labelKey: 'common.settings', fallback: 'Settings' },
 ];
 
 export default function AppSidebar({ open, onClose }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useLanguage();
 
   const navItems = user?.role === 'doctor' ? DOCTOR_NAV : PATIENT_NAV;
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U';
@@ -76,7 +80,7 @@ export default function AppSidebar({ open, onClose }) {
               }`}
             >
               <Icon size={16} className={active ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-600 transition-colors'} />
-              <span>{item.label}</span>
+              <span>{t(item.labelKey) !== item.labelKey ? t(item.labelKey) : item.fallback}</span>
             </NavLink>
           );
         })}
@@ -107,7 +111,7 @@ export default function AppSidebar({ open, onClose }) {
           <button
             onClick={handleLogout}
             className="w-7 h-7 rounded-lg hover:bg-red-50 flex items-center justify-center text-gray-400 hover:text-red-500 transition-all shrink-0"
-            title="Logout"
+            title={t('common.logout') !== 'common.logout' ? t('common.logout') : 'Logout'}
           >
             <LogOut size={14} />
           </button>

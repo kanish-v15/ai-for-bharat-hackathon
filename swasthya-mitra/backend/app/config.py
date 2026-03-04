@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     dynamodb_table: str = "swasthyamitra-interactions"
 
     # Bedrock Models
-    bedrock_model_id: str = "anthropic.claude-sonnet-4-6-20250514-v1:0"
+    bedrock_model_id: str = "us.anthropic.claude-sonnet-4-6"
     bedrock_lite_model_id: str = "amazon.nova-lite-v1:0"
 
     # Sarvam AI

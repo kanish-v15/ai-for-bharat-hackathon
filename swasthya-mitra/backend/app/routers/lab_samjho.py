@@ -73,8 +73,11 @@ async def analyze_lab_report(
             audio_bytes = await text_to_speech(summary_text, language)
             if audio_bytes:
                 audio_url = upload_audio_and_get_url(audio_bytes, "lab-audio")
-    except Exception:
-        pass  # Audio is optional, don't fail the request
+                print(f"[LAB_SAMJHO] Audio generated: {audio_url[:80]}...")
+            else:
+                print("[LAB_SAMJHO] TTS returned empty audio bytes")
+    except Exception as e:
+        print(f"[LAB_SAMJHO] TTS/audio error: {type(e).__name__}: {e}")
 
     interaction_id = str(uuid.uuid4())
 

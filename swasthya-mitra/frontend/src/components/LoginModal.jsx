@@ -1,24 +1,26 @@
 import { useState } from 'react';
 import { X, Heart, MessageSquare, UserCheck, Languages, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 
 const LANGUAGES_LIST = [
-  { code: 'en', native: 'English', english: '' },
-  { code: 'hi', native: '\u0939\u093f\u0928\u094d\u0926\u0940', english: 'Hindi' },
-  { code: 'ta', native: '\u0ba4\u0bae\u0bbf\u0bb4\u0bcd', english: 'Tamil' },
-  { code: 'te', native: '\u0c24\u0c46\u0c32\u0c41\u0c17\u0c41', english: 'Telugu' },
-  { code: 'kn', native: '\u0c95\u0ca8\u0ccd\u0ca8\u0ca1', english: 'Kannada' },
-  { code: 'ml', native: '\u0d2e\u0d32\u0d2f\u0d3e\u0d33\u0d02', english: 'Malayalam' },
-  { code: 'bn', native: '\u09ac\u09be\u0982\u09b2\u09be', english: 'Bengali' },
-  { code: 'mr', native: '\u092e\u0930\u093e\u0920\u0940', english: 'Marathi' },
-  { code: 'gu', native: '\u0a97\u0ac1\u0a9c\u0ab0\u0abe\u0aa4\u0ac0', english: 'Gujarati' },
+  { code: 'english', native: 'English', english: '' },
+  { code: 'hindi', native: 'हिंदी', english: 'Hindi' },
+  { code: 'tamil', native: 'தமிழ்', english: 'Tamil' },
+  { code: 'telugu', native: 'తెలుగు', english: 'Telugu' },
+  { code: 'kannada', native: 'ಕನ್ನಡ', english: 'Kannada' },
+  { code: 'malayalam', native: 'മലയാളം', english: 'Malayalam' },
+  { code: 'bengali', native: 'বাংলা', english: 'Bengali' },
+  { code: 'marathi', native: 'मराठी', english: 'Marathi' },
+  { code: 'gujarati', native: 'ગુજરાતી', english: 'Gujarati' },
 ];
 
 const STEP_ICONS = [Heart, MessageSquare, UserCheck, Languages];
 
 export default function LoginModal() {
   const { login, setShowLogin } = useAuth();
+  const { setLanguage } = useLanguage();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [phone, setPhone] = useState('');
@@ -51,7 +53,8 @@ export default function LoginModal() {
 
   const handleLanguageSelect = (lang) => {
     login(role, phone, lang);
-    navigate(role === 'doctor' ? '/doctor' : '/patient');
+    setLanguage(lang);
+    navigate('/profile-setup');
   };
 
   return (

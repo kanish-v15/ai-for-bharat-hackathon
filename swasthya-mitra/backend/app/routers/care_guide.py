@@ -47,6 +47,7 @@ async def process_question(question: str, language: str, session_id: str | None)
         conversation_history=history,
     )
 
+    raw = None
     try:
         raw = invoke_claude(prompt, system=CARE_GUIDE_SYSTEM)
         # Parse JSON
@@ -58,7 +59,10 @@ async def process_question(question: str, language: str, session_id: str | None)
         result = json.loads(json_str.strip())
         answer = result.get("answer", raw)
         is_emergency = is_emergency or result.get("is_emergency", False)
-    except (json.JSONDecodeError, Exception):
+    except (json.JSONDecodeError, Exception) as e:
+        import traceback
+        print(f"[CARE_GUIDE_ERROR] invoke_claude failed: {type(e).__name__}: {e}")
+        traceback.print_exc()
         answer = raw if isinstance(raw, str) else "I'm sorry, I couldn't process your question. Please try again."
 
     # Translate answer if not English
@@ -76,8 +80,11 @@ async def process_question(question: str, language: str, session_id: str | None)
         audio_bytes = await text_to_speech(audio_text, language)
         if audio_bytes:
             audio_url = upload_audio_and_get_url(audio_bytes, "care-audio")
-    except Exception:
-        pass
+            print(f"[CARE_GUIDE] Audio generated: {audio_url[:80]}...")
+        else:
+            print("[CARE_GUIDE] TTS returned empty audio bytes")
+    except Exception as e:
+        print(f"[CARE_GUIDE] TTS/audio error: {type(e).__name__}: {e}")
 
     # Save to session
     sessions[session_id].append({"role": "user", "text": question_en})

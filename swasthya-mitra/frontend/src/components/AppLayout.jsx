@@ -1,8 +1,11 @@
-import { useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
-import { Search, Bell, Menu } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Search, Menu } from 'lucide-react';
 import AppSidebar from './AppSidebar';
 import LanguageSelector from './LanguageSelector';
+import NotificationPanel from './NotificationPanel';
+import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const PAGE_TITLES = {
   '/patient': 'Dashboard',
@@ -12,6 +15,8 @@ const PAGE_TITLES = {
   '/medscribe': 'MedScribe',
   '/settings': 'Settings',
   '/health-timeline': 'Health Timeline',
+  '/profile-setup': 'Profile Setup',
+  '/profile': 'My Profile',
 };
 
 const PAGE_SUBTITLES = {
@@ -20,14 +25,44 @@ const PAGE_SUBTITLES = {
   '/lab-samjho': 'Understand your lab reports',
   '/care-guide': 'AI health companion',
   '/medscribe': 'Smart documentation',
+  '/health-timeline': 'Your complete health journey',
+  '/profile-setup': 'Complete your health profile',
+  '/profile': 'View and edit your details',
 };
+
+const NO_GUARD_ROUTES = ['/profile-setup', '/profile'];
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { t } = useLanguage();
 
-  const pageTitle = PAGE_TITLES[location.pathname] || 'SwasthyaMitra';
-  const pageSubtitle = PAGE_SUBTITLES[location.pathname];
+  // Redirect to profile-setup if profile is incomplete
+  useEffect(() => {
+    if (user && !user.profileComplete && !NO_GUARD_ROUTES.includes(location.pathname)) {
+      navigate('/profile-setup', { replace: true });
+    }
+  }, [user, location.pathname, navigate]);
+
+  const PAGE_TITLE_KEYS = {
+    '/patient': 'common.dashboard', '/doctor': 'common.dashboard',
+    '/lab-samjho': 'common.labSamjho', '/care-guide': 'common.careGuide',
+    '/medscribe': 'common.medscribe', '/settings': 'common.settings',
+    '/health-timeline': 'common.healthTimeline',
+    '/profile-setup': 'profile.setupTitle', '/profile': 'profile.title',
+  };
+  const PAGE_SUBTITLE_KEYS = {
+    '/patient': 'dashboard.yourHealth', '/doctor': 'dashboard.todayOverview',
+    '/lab-samjho': 'labSamjho.subtitle', '/care-guide': 'careGuide.subtitle',
+    '/medscribe': 'medscribe.subtitle', '/health-timeline': 'healthTimeline.subtitle',
+    '/profile-setup': 'profile.setupSubtitle', '/profile': 'profile.subtitle',
+  };
+  const titleKey = PAGE_TITLE_KEYS[location.pathname];
+  const subtitleKey = PAGE_SUBTITLE_KEYS[location.pathname];
+  const pageTitle = titleKey ? t(titleKey) : (PAGE_TITLES[location.pathname] || 'SwasthyaMitra');
+  const pageSubtitle = subtitleKey ? t(subtitleKey) : PAGE_SUBTITLES[location.pathname];
 
   return (
     <div className="min-h-screen bg-cream flex">
@@ -65,11 +100,7 @@ export default function AppLayout() {
 
             <LanguageSelector />
 
-            {/* Notification Bell */}
-            <button className="w-9 h-9 rounded-lg bg-white flex items-center justify-center text-gray-500 hover:text-primary-500 transition-colors border border-gray-200/60 relative">
-              <Bell size={15} />
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary-500 rounded-full border-2 border-white"></span>
-            </button>
+            <NotificationPanel />
           </div>
         </header>
 

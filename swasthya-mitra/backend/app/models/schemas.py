@@ -48,6 +48,12 @@ class Medication(BaseModel):
     frequency: Optional[str] = None
 
 
+class MedScribeTextRequest(BaseModel):
+    text: str
+    language: str = "hindi"
+    doctor_id: str = "demo-doctor"
+
+
 class MedScribeResponse(BaseModel):
     transcription: str
     soap_note: SOAPNote
