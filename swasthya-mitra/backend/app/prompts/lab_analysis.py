@@ -22,19 +22,19 @@ IMPORTANT:
 - If you cannot read a value clearly, mention that
 
 Return your response as valid JSON in this exact format:
-{
+{{
   "parameters": [
-    {
+    {{
       "name": "Hemoglobin",
       "value": "12.5",
       "unit": "g/dL",
       "reference_range": "12.0-15.5 g/dL",
       "classification": "Normal",
       "explanation": "Your hemoglobin level is normal. This means your blood can carry oxygen properly."
-    }
+    }}
   ],
   "summary": "Overall summary of the report findings in 2-3 sentences."
-}
+}}
 
 Here is the extracted text from the report for additional context:
 {extracted_text}
