@@ -25,10 +25,21 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Install dependencies
+      - name: Install dependencies (Lambda-compatible)
         run: |
           cd swasthya-mitra/backend
-          pip install -r requirements.txt -t package/
+          pip install \
+            --platform manylinux2014_x86_64 \
+            --target package/ \
+            --implementation cp \
+            --python-version 3.12 \
+            --only-binary :all: \
+            -r requirements.txt
+          # Install any pure-python packages that --only-binary skips
+          pip install \
+            --target package/ \
+            --no-deps \
+            python-dotenv python-multipart
 
       - name: Package Lambda
         run: |
