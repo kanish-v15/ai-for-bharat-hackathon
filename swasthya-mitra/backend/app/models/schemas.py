@@ -19,6 +19,12 @@ class LabAnalysisResponse(BaseModel):
     interaction_id: str
 
 
+class LabQuestionRequest(BaseModel):
+    question: str
+    analysis_context: str  # JSON string of the analysis result
+    language: str = "hindi"
+
+
 class CareGuideTextRequest(BaseModel):
     text: str
     language: str = "hindi"

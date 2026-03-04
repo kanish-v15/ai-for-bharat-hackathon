@@ -5,7 +5,8 @@ from app.services.bedrock_service import invoke_model, invoke_model_with_image
 from app.services.textract_service import extract_text_from_image
 from app.services.sarvam_service import translate_text, text_to_speech
 from app.services.s3_service import upload_file, upload_audio_and_get_url
-from app.prompts.lab_analysis import LAB_ANALYSIS_SYSTEM, LAB_ANALYSIS_PROMPT
+from app.models.schemas import LabQuestionRequest
+from app.prompts.lab_analysis import LAB_ANALYSIS_SYSTEM, LAB_ANALYSIS_PROMPT, LAB_QA_SYSTEM, LAB_QA_PROMPT
 
 router = APIRouter(prefix="/lab-samjho", tags=["Lab Samjho"])
 
@@ -91,4 +92,53 @@ async def analyze_lab_report(
         "summary": result.get("summary", ""),
         "audio_url": audio_url,
         "interaction_id": interaction_id,
+    }
+
+
+@router.post("/ask")
+async def ask_about_report(request: LabQuestionRequest):
+    """Ask a follow-up question about a lab report analysis."""
+    if not request.question.strip():
+        raise HTTPException(status_code=400, detail="Please provide a question.")
+
+    prompt = LAB_QA_PROMPT.format(
+        analysis_context=request.analysis_context,
+        question=request.question,
+    )
+
+    raw = None
+    try:
+        raw = invoke_model(prompt, system=LAB_QA_SYSTEM)
+        json_str = raw
+        if "```json" in json_str:
+            json_str = json_str.split("```json")[1].split("```")[0]
+        elif "```" in json_str:
+            json_str = json_str.split("```")[1].split("```")[0]
+        result = json.loads(json_str.strip())
+        answer = result.get("answer", raw)
+    except (json.JSONDecodeError, Exception):
+        answer = raw if isinstance(raw, str) else "I couldn't process your question. Please try again."
+
+    # Translate if needed
+    answer_translated = None
+    if request.language != "english":
+        try:
+            answer_translated = await translate_text(answer, "english", request.language)
+        except Exception:
+            answer_translated = answer
+
+    # Generate audio
+    audio_url = None
+    try:
+        audio_text = answer_translated or answer
+        audio_bytes = await text_to_speech(audio_text, request.language)
+        if audio_bytes:
+            audio_url = upload_audio_and_get_url(audio_bytes, "lab-qa-audio")
+    except Exception:
+        pass
+
+    return {
+        "answer": answer,
+        "answer_translated": answer_translated,
+        "audio_url": audio_url,
     }

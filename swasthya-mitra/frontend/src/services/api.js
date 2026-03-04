@@ -19,6 +19,15 @@ export async function analyzeLabReport(imageFile, language, userId = 'demo-user'
   return data;
 }
 
+export async function askLabQuestion(question, analysisContext, language) {
+  const { data } = await api.post('/lab-samjho/ask', {
+    question,
+    analysis_context: JSON.stringify(analysisContext),
+    language,
+  });
+  return data;
+}
+
 // Care Guide API
 export async function askCareGuide(audioBlob, language, userId = 'demo-user', sessionId = null) {
   const formData = new FormData();

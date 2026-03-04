@@ -1,671 +1,532 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
-  Upload,
-  Camera,
-  FileText,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
-  Volume2,
-  Download,
-  RotateCcw,
-  Sparkles,
-  Info,
-  ImageIcon,
-  FileScan,
-  ArrowRight,
-  Activity,
-  TrendingUp,
-  Shield,
+  Upload, Send, Mic, MicOff, FileText, AlertTriangle, CheckCircle,
+  Paperclip, Trash2, ChevronRight, Stethoscope, X, FileScan,
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useNotifications } from '../context/NotificationContext';
-import { analyzeLabReport } from '../services/api';
+import { analyzeLabReport, askLabQuestion } from '../services/api';
 import { saveInteraction, getInteractions } from '../services/dataStore';
+import { LANGUAGES, CLASSIFICATION_COLORS } from '../utils/constants';
 import AudioPlayer from '../components/AudioPlayer';
 import Disclaimer from '../components/Disclaimer';
-import LoadingSpinner from '../components/LoadingSpinner';
-import { CLASSIFICATION_COLORS } from '../utils/constants';
 
-const LOADING_STEPS = {
-  hindi: ['रिपोर्ट अपलोड हो रही है...', 'रिपोर्ट पढ़ी जा रही है...', 'पैरामीटर का विश्लेषण...', 'हिंदी में अनुवाद...', 'ऑडियो बनाया जा रहा है...'],
-  tamil: ['அறிக்கை பதிவேற்றப்படுகிறது...', 'அறிக்கை படிக்கப்படுகிறது...', 'அளவுருக்கள் பகுப்பாய்வு...', 'தமிழில் மொழிபெயர்ப்பு...', 'ஆடியோ உருவாக்கப்படுகிறது...'],
-  english: ['Uploading report...', 'Reading your report...', 'Analyzing parameters...', 'Translating...', 'Generating audio...'],
-  telugu: ['నివేదిక అప్‌లోడ్ అవుతోంది...', 'నివేదిక చదవబడుతోంది...', 'పరామితులు విశ్లేషించబడుతున్నాయి...', 'అనువాదం...', 'ఆడియో తయారు చేస్తోంది...'],
-  kannada: ['ವರದಿ ಅಪ್‌ಲೋಡ್ ಆಗುತ್ತಿದೆ...', 'ವರದಿ ಓದಲಾಗುತ್ತಿದೆ...', 'ನಿಯತಾಂಕಗಳನ್ನು ವಿಶ್ಲೇಷಿಸಲಾಗುತ್ತಿದೆ...', 'ಅನುವಾದಿಸುತ್ತಿದೆ...', 'ಆಡಿಯೋ ರಚಿಸುತ್ತಿದೆ...'],
-  malayalam: ['റിപ്പോർട്ട് അപ്‌ലോഡ് ചെയ്യുന്നു...', 'റിപ്പോർട്ട് വായിക്കുന്നു...', 'പരാമീറ്ററുകൾ വിശകലനം ചെയ്യുന്നു...', 'വിവർത്തനം ചെയ്യുന്നു...', 'ഓഡിയോ സൃഷ്ടിക്കുന്നു...'],
-  bengali: ['রিপোর্ট আপলোড হচ্ছে...', 'রিপোর্ট পড়া হচ্ছে...', 'প্যারামিটার বিশ্লেষণ হচ্ছে...', 'অনুবাদ হচ্ছে...', 'অডিও তৈরি হচ্ছে...'],
-  marathi: ['अहवाल अपलोड होत आहे...', 'अहवाल वाचला जात आहे...', 'पॅरामीटर्सचे विश्लेषण...', 'अनुवाद करत आहे...', 'ऑडिओ तयार करत आहे...'],
-  gujarati: ['રિપોર્ટ અપલોડ થઈ રહ્યો છે...', 'રિપોર્ટ વાંચાઈ રહ્યો છે...', 'પેરામીટર્સનું વિશ્લેષણ...', 'અનુવાદ થઈ રહ્યો છે...', 'ઓડિયો બનાવાઈ રહ્યો છે...'],
+const WELCOME_MSG = {
+  hindi: 'नमस्ते! अपनी लैब रिपोर्ट अपलोड करें और मैं उसका विश्लेषण करूंगा। फिर आप उसके बारे में सवाल पूछ सकते हैं।',
+  tamil: 'வணக்கம்! உங்கள் லேப் அறிக்கையை பதிவேற்றவும், நான் அதை பகுப்பாய்வு செய்கிறேன். பின்னர் கேள்விகள் கேளுங்கள்.',
+  english: 'Hello! Upload your lab report and I\'ll analyze it. You can then ask follow-up questions about your results.',
+  telugu: 'నమస్కారం! మీ ల్యాబ్ రిపోర్ట్ అప్‌లోడ్ చేయండి, నేను విశ్లేషిస్తాను. తర్వాత మీరు ప్రశ్నలు అడగవచ్చు.',
+  kannada: 'ನಮಸ್ಕಾರ! ನಿಮ್ಮ ಲ್ಯಾಬ್ ರಿಪೋರ್ಟ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ, ನಾನು ವಿಶ್ಲೇಷಿಸುತ್ತೇನೆ.',
+  malayalam: 'നമസ്കാരം! നിങ്ങളുടെ ലാബ് റിപ്പോർട്ട് അപ്‌ലോഡ് ചെയ്യുക.',
+  bengali: 'নমস্কার! আপনার ল্যাব রিপোর্ট আপলোড করুন।',
+  marathi: 'नमस्कार! तुमचा लॅब रिपोर्ट अपलोड करा.',
+  gujarati: 'નમસ્તે! તમારો લેબ રિપોર્ટ અપલોડ કરો.',
 };
 
-const FLOW_STEPS = [
-  { num: 1, label: 'Upload' },
-  { num: 2, label: 'AI Analysis' },
-  { num: 3, label: 'Results' },
-  { num: 4, label: 'Audio' },
-];
+const PLACEHOLDERS = {
+  hindi: 'रिपोर्ट के बारे में सवाल पूछें...',
+  tamil: 'அறிக்கை பற்றி கேள்வி கேளுங்கள்...',
+  english: 'Ask about your report...',
+  telugu: 'మీ రిపోర్ట్ గురించి అడగండి...',
+  kannada: 'ನಿಮ್ಮ ರಿಪೋರ್ಟ್ ಬಗ್ಗೆ ಕೇಳಿ...',
+  malayalam: 'നിങ്ങളുടെ റിപ്പോർട്ടിനെ കുറിച്ച് ചോദിക്കുക...',
+  bengali: 'আপনার রিপোর্ট সম্পর্কে জিজ্ঞাসা করুন...',
+  marathi: 'तुमच्या रिपोर्ट बद्दल विचारा...',
+  gujarati: 'તમારા રિપોર્ટ વિશે પૂછો...',
+};
 
-const HOW_IT_WORKS = [
-  'Upload or photograph your report',
-  'AI extracts text using Amazon Textract',
-  'Amazon Bedrock analyzes values',
-  'Get explanation in your language',
-];
+/* ── Compact parameter card inside chat ── */
+function AnalysisCard({ result }) {
+  const [expanded, setExpanded] = useState(false);
+  const params = result.parameters || [];
+  const normalCount = params.filter(p => p.classification === 'Normal').length;
+  const flaggedCount = params.filter(p => p.classification !== 'Normal').length;
+  const shown = expanded ? params : params.slice(0, 4);
+
+  return (
+    <div className="space-y-2">
+      {/* Stats row */}
+      <div className="flex gap-2">
+        <span className="inline-flex items-center gap-1 text-[11px] font-heading font-semibold bg-green-50 text-green-700 border border-green-200 px-2 py-1 rounded-lg">
+          <CheckCircle size={12} /> {normalCount} Normal
+        </span>
+        {flaggedCount > 0 && (
+          <span className="inline-flex items-center gap-1 text-[11px] font-heading font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-2 py-1 rounded-lg">
+            <AlertTriangle size={12} /> {flaggedCount} Flagged
+          </span>
+        )}
+      </div>
+
+      {/* Parameters */}
+      <div className="bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
+        {shown.map((p, i) => {
+          const isNormal = p.classification === 'Normal';
+          const isBorderline = p.classification === 'Borderline';
+          return (
+            <div key={i} className={`flex items-center gap-3 px-3 py-2 ${i > 0 ? 'border-t border-gray-100' : ''}`}>
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+                isNormal ? 'bg-green-100' : isBorderline ? 'bg-amber-100' : 'bg-red-100'
+              }`}>
+                {isNormal
+                  ? <CheckCircle size={11} className="text-green-600" />
+                  : <AlertTriangle size={11} className={isBorderline ? 'text-amber-600' : 'text-red-600'} />
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-heading font-semibold text-dark truncate">{p.name}</p>
+                <p className="text-[10px] font-body text-gray-500">{p.explanation_translated || p.explanation}</p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-xs font-heading font-bold text-dark">{p.value} <span className="text-[10px] font-normal text-gray-400">{p.unit}</span></p>
+                <p className="text-[9px] font-body text-gray-400">{p.reference_range}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {params.length > 4 && (
+        <button onClick={() => setExpanded(!expanded)} className="text-[11px] text-primary-500 font-heading font-semibold hover:underline">
+          {expanded ? 'Show less' : `Show all ${params.length} parameters`}
+        </button>
+      )}
+
+      {/* Summary */}
+      {result.summary && (
+        <div className="bg-primary-50 rounded-xl px-3 py-2 border border-primary-100">
+          <p className="text-[11px] font-body text-dark leading-relaxed">{result.summary}</p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function LabSamjho() {
   const { language } = useLanguage();
   const { addNotification } = useNotifications();
-  const fileInputRef = useRef(null);
-  const previousReports = getInteractions('lab_report').slice(0, 5);
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [textInput, setTextInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingStep, setLoadingStep] = useState(0);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState(null);
+  const [activeAnalysis, setActiveAnalysis] = useState(null); // current report analysis for Q&A
+  const [showDocs, setShowDocs] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [liveTranscript, setLiveTranscript] = useState('');
+  const [recordDuration, setRecordDuration] = useState(0);
+  const fileInputRef = useRef(null);
+  const messagesEndRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const timerRef = useRef(null);
 
-  const currentStep = result ? 4 : isLoading ? 2 : previewUrl ? 1 : 0;
+  const langConfig = LANGUAGES[language];
+  const labReports = getInteractions('lab_report');
+  const prescriptions = getInteractions('medscribe');
 
-  const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-    if (!validTypes.includes(file.type)) { setError('Please upload a JPEG, PNG, or PDF file.'); return; }
-    if (file.size > 10 * 1024 * 1024) { setError('File is too large. Maximum size is 10MB.'); return; }
-    setSelectedImage(file);
-    setPreviewUrl(URL.createObjectURL(file));
-    setError(null);
-    setResult(null);
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (recognitionRef.current) try { recognitionRef.current.abort(); } catch {}
+    };
+  }, []);
+
+  const scrollToBottom = () => {
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
-  const handleAnalyze = async () => {
-    if (!selectedImage) return;
-    setIsLoading(true); setLoadingStep(0); setError(null);
-    const stepInterval = setInterval(() => { setLoadingStep((s) => Math.min(s + 1, 4)); }, 3000);
+  /* ── File upload handler ── */
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (!validTypes.includes(file.type)) {
+      setMessages(prev => [...prev, { role: 'assistant', text: 'Please upload a JPEG, PNG, or PDF file.', isError: true, timestamp: new Date() }]);
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setMessages(prev => [...prev, { role: 'assistant', text: 'File too large. Maximum 10MB.', isError: true, timestamp: new Date() }]);
+      return;
+    }
+
+    // Show upload message
+    const previewUrl = file.type !== 'application/pdf' ? URL.createObjectURL(file) : null;
+    setMessages(prev => [...prev, {
+      role: 'user', text: `Uploaded: ${file.name}`, file: { name: file.name, type: file.type, previewUrl }, timestamp: new Date(),
+    }]);
+    scrollToBottom();
+
+    // Analyze
+    setIsLoading(true);
     try {
-      const data = await analyzeLabReport(selectedImage, language);
-      setResult(data);
+      const data = await analyzeLabReport(file, language);
+      setActiveAnalysis(data);
       saveInteraction('lab_report', data);
-      const paramCount = data.parameters?.length || 0;
       const flagged = data.parameters?.filter(p => p.classification !== 'Normal').length || 0;
-      addNotification('Lab report analyzed', `${paramCount} parameters found, ${flagged} flagged`, flagged > 0 ? 'warning' : 'success', '/lab-samjho');
+      addNotification('Lab report analyzed', `${data.parameters?.length || 0} parameters, ${flagged} flagged`, flagged > 0 ? 'warning' : 'success', '/lab-samjho');
+      setMessages(prev => [...prev, {
+        role: 'assistant', analysisResult: data, audio_url: data.audio_url,
+        text: 'Here are your lab report results. You can ask me any questions about these values.',
+        timestamp: new Date(),
+      }]);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to analyze report. Please try again.');
+      setMessages(prev => [...prev, {
+        role: 'assistant', text: err.response?.data?.detail || 'Failed to analyze report. Please try again.', isError: true, timestamp: new Date(),
+      }]);
     } finally {
-      clearInterval(stepInterval);
       setIsLoading(false);
+      scrollToBottom();
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
-  const handleReset = () => {
-    setSelectedImage(null); setPreviewUrl(null); setResult(null); setError(null);
+  /* ── Load a previous report into chat ── */
+  const loadReport = (report) => {
+    setMessages([
+      { role: 'user', text: `Loaded report: ${report.title}`, timestamp: new Date(report.date) },
+      {
+        role: 'assistant', analysisResult: report.data, audio_url: report.data?.audio_url,
+        text: 'I\'ve loaded your previous report. Ask me anything about these results.',
+        timestamp: new Date(),
+      },
+    ]);
+    setActiveAnalysis(report.data);
+    setShowDocs(false);
+    scrollToBottom();
   };
 
-  const normalCount = result?.parameters?.filter(p => p.classification === 'Normal').length || 0;
-  const flaggedCount = result?.parameters?.filter(p => p.classification !== 'Normal').length || 0;
+  /* ── Load a MedScribe prescription ── */
+  const loadPrescription = (rx) => {
+    const soap = rx.data?.soap_note || {};
+    const meds = rx.data?.medications || [];
+    const instructions = rx.data?.patient_instructions_translated || rx.data?.patient_instructions || '';
+    setMessages([
+      { role: 'user', text: `Loaded prescription: ${rx.title}`, timestamp: new Date(rx.date) },
+      {
+        role: 'assistant',
+        text: `**Doctor's Notes:**\n\n**Assessment:** ${soap.assessment || 'N/A'}\n\n**Plan:** ${soap.plan || 'N/A'}\n\n**Medications:**\n${meds.map(m => `- ${m.name} ${m.dosage || ''} ${m.frequency || ''}`).join('\n')}\n\n**Instructions:** ${instructions}`,
+        timestamp: new Date(),
+      },
+    ]);
+    setActiveAnalysis(null);
+    setShowDocs(false);
+    scrollToBottom();
+  };
+
+  /* ── Ask follow-up question ── */
+  const submitQuestion = async (question, isVoice = false) => {
+    if (!question || isLoading) return;
+    setMessages(prev => [...prev, { role: 'user', text: question, isVoice, timestamp: new Date() }]);
+    setTextInput('');
+    setIsLoading(true);
+    scrollToBottom();
+
+    try {
+      if (activeAnalysis) {
+        const data = await askLabQuestion(question, activeAnalysis, language);
+        setMessages(prev => [...prev, {
+          role: 'assistant', text: data.answer_translated || data.answer, audio_url: data.audio_url, timestamp: new Date(),
+        }]);
+      } else {
+        setMessages(prev => [...prev, {
+          role: 'assistant', text: 'Please upload a lab report first, or select one from your documents to ask questions about.',
+          timestamp: new Date(),
+        }]);
+      }
+    } catch (err) {
+      setMessages(prev => [...prev, {
+        role: 'assistant', text: err.response?.data?.detail || 'Something went wrong. Please try again.', isError: true, timestamp: new Date(),
+      }]);
+    } finally {
+      setIsLoading(false);
+      scrollToBottom();
+    }
+  };
+
+  const handleTextSubmit = (e) => {
+    e.preventDefault();
+    if (!textInput.trim() || isLoading) return;
+    submitQuestion(textInput.trim(), false);
+  };
+
+  /* ── Voice input ── */
+  const startRecording = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) { alert('Speech recognition not supported. Use Chrome.'); return; }
+    const recognition = new SpeechRecognition();
+    recognition.lang = langConfig?.speechCode || 'en-IN';
+    recognition.interimResults = true;
+    recognition.continuous = true;
+    recognitionRef.current = recognition;
+    let finalTranscript = '';
+    recognition.onresult = (event) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript + ' ';
+        else interim += event.results[i][0].transcript;
+      }
+      setLiveTranscript((finalTranscript + interim).trim());
+    };
+    recognition.onerror = () => { setIsRecording(false); setLiveTranscript(''); if (timerRef.current) clearInterval(timerRef.current); };
+    recognition.onend = () => {
+      if (finalTranscript.trim() && isRecording) submitQuestion(finalTranscript.trim(), true);
+      setIsRecording(false); setLiveTranscript(''); if (timerRef.current) clearInterval(timerRef.current);
+    };
+    recognition.start();
+    setIsRecording(true); setLiveTranscript(''); setRecordDuration(0);
+    timerRef.current = setInterval(() => { setRecordDuration(d => { if (d + 1 >= 60) { stopRecording(); return 60; } return d + 1; }); }, 1000);
+  };
+
+  const stopRecording = () => {
+    if (recognitionRef.current) try { recognitionRef.current.stop(); } catch {}
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (liveTranscript.trim()) submitQuestion(liveTranscript.trim(), true);
+    setIsRecording(false); setLiveTranscript('');
+  };
+
+  const clearChat = () => { setMessages([]); setActiveAnalysis(null); };
+
+  const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+  const formatTimestamp = (d) => d ? new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
   return (
-    <div className="animate-slide-up">
-      {/* ── Page Header ── */}
-      <div className="mb-3 animate-stagger-1">
-        <h1 className="font-display text-xl text-dark tracking-tight leading-tight">
-          Lab <span className="italic text-primary-500">Samjho</span>
-        </h1>
-        <p className="font-body text-warm-gray text-xs mt-0.5 max-w-lg">
-          Upload your lab report for AI-powered analysis in your language.
-        </p>
+    <div className="h-[calc(100vh-130px)] flex overflow-hidden rounded-3xl bg-gray-50">
+      {/* ── Document Sidebar ── */}
+      <div className={`${showDocs ? 'w-72' : 'w-0'} transition-all duration-300 overflow-hidden border-r border-gray-200 bg-white shrink-0`}>
+        <div className="w-72 h-full flex flex-col">
+          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+            <h3 className="font-heading text-sm font-bold text-dark">My Documents</h3>
+            <button onClick={() => setShowDocs(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"><X size={16} /></button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-3 space-y-4">
+            {/* Lab Reports */}
+            <div>
+              <h4 className="text-[10px] font-heading font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">Lab Reports</h4>
+              {labReports.length === 0 ? (
+                <p className="text-[11px] text-gray-400 font-body px-1">No reports yet</p>
+              ) : labReports.slice(0, 10).map((r, i) => (
+                <button key={r.id} onClick={() => loadReport(r)}
+                  className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-primary-50 transition-colors text-left group mb-1">
+                  <div className="w-8 h-8 bg-sky-50 rounded-lg flex items-center justify-center shrink-0 border border-sky-100">
+                    <FileText size={14} className="text-sky-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-heading font-semibold text-dark truncate">{r.title}</p>
+                    <p className="text-[9px] font-body text-gray-400">{new Date(r.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}</p>
+                  </div>
+                  <ChevronRight size={12} className="text-gray-300 group-hover:text-primary-500 shrink-0" />
+                </button>
+              ))}
+            </div>
+
+            {/* MedScribe Prescriptions */}
+            <div>
+              <h4 className="text-[10px] font-heading font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">Prescriptions</h4>
+              {prescriptions.length === 0 ? (
+                <p className="text-[11px] text-gray-400 font-body px-1">No prescriptions yet</p>
+              ) : prescriptions.slice(0, 10).map((rx) => (
+                <button key={rx.id} onClick={() => loadPrescription(rx)}
+                  className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-emerald-50 transition-colors text-left group mb-1">
+                  <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center shrink-0 border border-emerald-100">
+                    <Stethoscope size={14} className="text-emerald-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-heading font-semibold text-dark truncate">{rx.title}</p>
+                    <p className="text-[9px] font-body text-gray-400">{new Date(rx.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}</p>
+                  </div>
+                  <ChevronRight size={12} className="text-gray-300 group-hover:text-emerald-500 shrink-0" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* ── Horizontal Stepper ── */}
-      <div className="animate-stagger-2 mb-4">
-        <div className="flex items-center justify-center">
-          {FLOW_STEPS.map(({ num, label }, i) => {
-            const isCompleted = num <= currentStep;
-            const isActive = num === currentStep + 1;
+      {/* ── Main Chat Area ── */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setShowDocs(!showDocs)}
+              className={`p-2 rounded-lg transition-colors ${showDocs ? 'bg-primary-50 text-primary-500' : 'text-gray-400 hover:bg-gray-100'}`}
+              title="My Documents">
+              <FileText size={18} />
+            </button>
+            <div>
+              <h2 className="font-heading text-sm font-bold text-dark">Lab Samjho</h2>
+              <p className="text-[11px] text-green-500 font-medium">
+                {activeAnalysis ? `${activeAnalysis.parameters?.length || 0} parameters loaded` : 'Upload a report to start'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {messages.length > 0 && (
+              <button onClick={clearChat} className="p-2 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors" title="Clear chat">
+                <Trash2 size={16} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 chat-scroll">
+          {/* Welcome */}
+          <div className="flex justify-start">
+            <div className="max-w-[80%] sm:max-w-[70%]">
+              <div className="bg-white rounded-2xl rounded-tl-md px-4 py-3 shadow-sm border border-gray-100">
+                <p className="text-sm text-dark font-body leading-relaxed">{WELCOME_MSG[language] || WELCOME_MSG.english}</p>
+                <div className="mt-2 flex gap-2">
+                  <button onClick={() => fileInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 text-[11px] font-heading font-semibold bg-primary-500 text-white px-3 py-1.5 rounded-lg hover:bg-primary-600 transition-colors">
+                    <Upload size={12} /> Upload Report
+                  </button>
+                  {(labReports.length > 0 || prescriptions.length > 0) && (
+                    <button onClick={() => setShowDocs(true)}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-heading font-semibold bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors">
+                      <FileText size={12} /> My Documents
+                    </button>
+                  )}
+                </div>
+              </div>
+              <p className="text-[10px] text-gray-400 mt-1 ml-2 font-body">SwasthyaMitra</p>
+            </div>
+          </div>
+
+          {/* Chat messages */}
+          {messages.map((msg, i) => {
+            const isUser = msg.role === 'user';
+            const isLastAssistant = !isUser && i === messages.length - 1;
 
             return (
-              <div key={num} className="flex items-center">
-                <div className="flex flex-col items-center gap-1">
-                  <div
-                    className={`
-                      w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-heading font-bold
-                      transition-all duration-500 ease-out
-                      ${isCompleted
-                        ? 'bg-india-green text-white shadow-sm shadow-india-green/20'
-                        : isActive
-                          ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-md shadow-primary-500/30 ring-2 ring-primary-100'
-                          : 'bg-cream-dark text-warm-gray/50'
-                      }
-                    `}
-                  >
-                    {isCompleted ? (
-                      <CheckCircle size={12} strokeWidth={2.5} />
-                    ) : (
-                      <span>{num}</span>
+              <div key={i} className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-slide-up`}>
+                <div className="max-w-[85%] sm:max-w-[75%]">
+                  {/* File attachment preview */}
+                  {msg.file && (
+                    <div className={`mb-1 ${isUser ? 'flex justify-end' : ''}`}>
+                      <div className="inline-flex items-center gap-2 bg-primary-400 text-white px-3 py-2 rounded-xl text-[11px] font-heading">
+                        {msg.file.type === 'application/pdf' ? <FileScan size={14} /> : <FileText size={14} />}
+                        {msg.file.name}
+                      </div>
+                      {msg.file.previewUrl && (
+                        <img src={msg.file.previewUrl} alt="Report" className="mt-1 max-h-40 rounded-xl border border-gray-200 object-contain" />
+                      )}
+                    </div>
+                  )}
+
+                  {/* Message bubble */}
+                  <div className={`px-4 py-3 shadow-sm ${
+                    isUser
+                      ? 'bg-primary-500 text-white rounded-2xl rounded-tr-md'
+                      : msg.isError
+                        ? 'bg-red-50 text-red-600 rounded-2xl rounded-tl-md border border-red-100'
+                        : 'bg-white text-dark rounded-2xl rounded-tl-md border border-gray-100'
+                  }`}>
+                    {/* Analysis result card */}
+                    {msg.analysisResult && <AnalysisCard result={msg.analysisResult} />}
+
+                    {/* Text */}
+                    {msg.text && (!msg.analysisResult || msg.text !== 'Here are your lab report results. You can ask me any questions about these values.') && (
+                      <p className="text-sm font-body leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    )}
+                    {msg.analysisResult && (
+                      <p className="text-xs font-body text-gray-500 mt-2 italic">Ask me anything about these results below.</p>
+                    )}
+
+                    {msg.isVoice && isUser && (
+                      <div className="flex items-center gap-1 mt-1.5 opacity-70">
+                        <Mic size={11} /><span className="text-[10px]">Voice</span>
+                      </div>
                     )}
                   </div>
-                  <span
-                    className={`
-                      text-[9px] font-heading font-semibold tracking-wide uppercase transition-colors duration-300
-                      ${isCompleted
-                        ? 'text-india-green'
-                        : isActive
-                          ? 'text-primary-600'
-                          : 'text-warm-gray/40'
-                      }
-                    `}
-                  >
-                    {label}
-                  </span>
-                </div>
 
-                {i < FLOW_STEPS.length - 1 && (
-                  <div className="relative w-10 sm:w-16 h-0.5 mx-1.5 mb-5">
-                    <div className="absolute inset-0 bg-cream-dark rounded-full" />
-                    <div
-                      className={`
-                        absolute inset-y-0 left-0 rounded-full transition-all duration-700 ease-out
-                        ${isCompleted ? 'bg-india-green w-full' : 'bg-cream-dark w-0'}
-                      `}
-                    />
-                  </div>
-                )}
+                  {/* Audio */}
+                  {msg.audio_url && (
+                    <div className="mt-1.5">
+                      <AudioPlayer audioUrl={msg.audio_url} label="Listen" autoPlay={isLastAssistant} />
+                    </div>
+                  )}
+
+                  <p className={`text-[10px] text-gray-400 mt-1 font-body ${isUser ? 'text-right mr-2' : 'ml-2'}`}>
+                    {formatTimestamp(msg.timestamp)}
+                  </p>
+                </div>
               </div>
             );
           })}
-        </div>
-      </div>
 
-      {/* ── Main Grid ── */}
-      <div className="grid lg:grid-cols-3 gap-4">
-
-        {/* ── Left Column (2/3) ── */}
-        <div className="lg:col-span-2 space-y-3">
-
-          {/* ── Upload Area ── */}
-          {!result && !isLoading && (
-            <div className="animate-stagger-3">
-              <div
-                className={`
-                  noise card-hover bg-white rounded-2xl overflow-hidden shadow-premium
-                  border-2 border-dashed
-                  ${previewUrl ? 'border-primary-300 bg-primary-50/10' : 'border-cream-dark hover:border-primary-300'}
-                  transition-all duration-300
-                `}
-              >
-                {previewUrl ? (
-                  <div className="p-4 space-y-3">
-                    {/* Preview */}
-                    <div className="relative rounded-xl overflow-hidden bg-cream ring-1 ring-cream-dark">
-                      {selectedImage?.type === 'application/pdf' ? (
-                        <div className="flex flex-col items-center justify-center py-8 gap-2">
-                          <FileScan size={36} className="text-primary-500" />
-                          <p className="text-xs font-heading font-semibold text-dark">{selectedImage.name}</p>
-                          <p className="text-[10px] font-body text-warm-gray">PDF document ready</p>
-                        </div>
-                      ) : (
-                        <img
-                          src={previewUrl}
-                          alt="Lab report preview"
-                          className="w-full max-h-56 object-contain"
-                        />
-                      )}
-                      <div className="absolute top-2 right-2">
-                        <span className="inline-flex items-center gap-1 text-[9px] font-heading font-semibold bg-white/90 backdrop-blur-sm text-india-green px-2 py-0.5 rounded-full shadow-sm ring-1 ring-india-green/10">
-                          <CheckCircle size={10} />
-                          Ready
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Action buttons */}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleAnalyze}
-                        disabled={isLoading}
-                        className="
-                          flex-1 bg-gradient-to-r from-primary-500 to-primary-600 text-white
-                          px-4 py-2.5 rounded-xl font-heading font-bold text-xs
-                          hover:from-primary-600 hover:to-primary-700
-                          active:scale-[0.98] disabled:opacity-50
-                          transition-all duration-200
-                          flex items-center justify-center gap-2
-                          shadow-lg shadow-primary-500/25
-                        "
-                      >
-                        <Sparkles size={14} />
-                        Analyze Report
-                      </button>
-                      <button
-                        onClick={handleReset}
-                        disabled={isLoading}
-                        className="
-                          px-3 py-2.5 rounded-xl
-                          border border-cream-dark text-warm-gray font-heading font-semibold text-xs
-                          hover:bg-cream hover:border-warm-gray/30
-                          active:scale-[0.98] disabled:opacity-50
-                          transition-all duration-200
-                        "
-                      >
-                        <RotateCcw size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full p-4 flex flex-col items-center gap-2 cursor-pointer group"
-                  >
-                    <div className="relative">
-                      <div className="w-9 h-9 bg-gradient-to-br from-primary-400 to-primary-600 rounded-xl flex items-center justify-center shadow-md shadow-primary-500/20 group-hover:shadow-lg group-hover:scale-105 transition-all duration-300">
-                        <Upload size={16} className="text-white" strokeWidth={1.8} />
-                      </div>
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-india-green rounded-md flex items-center justify-center shadow-sm">
-                        <Sparkles size={8} className="text-white" />
-                      </div>
-                    </div>
-
-                    <div className="text-center space-y-0.5">
-                      <p className="font-heading font-bold text-xs text-dark tracking-tight">
-                        Upload Your Lab Report
-                      </p>
-                      <p className="font-body text-[10px] text-warm-gray">
-                        Photo, JPEG, PNG, or PDF
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      {[
-                        { icon: Camera, label: 'Camera' },
-                        { icon: ImageIcon, label: 'Image' },
-                        { icon: FileScan, label: 'PDF' },
-                      ].map(({ icon: Icon, label }) => (
-                        <span
-                          key={label}
-                          className="
-                            inline-flex items-center gap-1
-                            text-[9px] font-heading font-medium text-warm-gray
-                            bg-cream border border-cream-dark
-                            px-1.5 py-0.5 rounded-full
-                            group-hover:border-primary-200 group-hover:bg-primary-50/50
-                            transition-colors duration-200
-                          "
-                        >
-                          <Icon size={9} className="text-primary-500" />
-                          {label}
-                        </span>
-                      ))}
-                    </div>
-                  </button>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,application/pdf"
-                  capture="environment"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* ── Loading State ── */}
+          {/* Loading */}
           {isLoading && (
-            <div className="animate-stagger-3">
-              <div className="noise bg-white rounded-2xl border border-cream-dark shadow-premium p-5">
-                <div className="flex items-center gap-2.5 mb-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-xl flex items-center justify-center shadow-md shadow-primary-500/20">
-                    <Activity size={14} className="text-white animate-pulse" />
+            <div className="flex justify-start animate-fade-in">
+              <div className="max-w-[80%]">
+                <div className="bg-white rounded-2xl rounded-tl-md px-4 py-3 shadow-sm border border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <span className="flex gap-1">
+                      <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </span>
+                    <span className="text-xs text-gray-400 font-body">
+                      {activeAnalysis ? 'Thinking...' : 'Analyzing your report...'}
+                    </span>
                   </div>
-                  <div>
-                    <h3 className="font-heading font-bold text-dark text-xs">
-                      Analyzing Your Report
-                    </h3>
-                    <p className="text-[10px] font-body text-warm-gray mt-0.5">
-                      AI is reading and interpreting your lab values
-                    </p>
-                  </div>
-                </div>
-                <LoadingSpinner steps={LOADING_STEPS[language]} currentStep={loadingStep} />
-              </div>
-            </div>
-          )}
-
-          {/* ── Error State ── */}
-          {error && (
-            <div className="animate-scale-in">
-              <div className="accent-bar-rose bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-start gap-3">
-                <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-heading font-semibold text-red-700 text-sm">
-                    Something went wrong
-                  </p>
-                  <p className="font-body text-red-600 text-xs mt-0.5">{error}</p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* ── Results ── */}
-          {result && (
-            <div className="space-y-5">
-
-              {/* Stat Badges Row */}
-              <div className="flex items-center gap-2.5 animate-stagger-1">
-                <div className="flex items-center gap-1.5 bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-xl shadow-sm">
-                  <CheckCircle size={14} />
-                  <span className="font-heading font-bold text-sm">{normalCount}</span>
-                  <span className="font-body text-xs">Normal</span>
-                </div>
-                {flaggedCount > 0 && (
-                  <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 px-3 py-2 rounded-xl shadow-sm">
-                    <AlertTriangle size={14} />
-                    <span className="font-heading font-bold text-sm">{flaggedCount}</span>
-                    <span className="font-body text-xs">Flagged</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Parameter Table Card */}
-              <div className="animate-stagger-2 noise bg-white rounded-2xl border border-cream-dark shadow-premium overflow-hidden">
-                {/* Table Header */}
-                <div className="px-5 py-4 border-b border-cream-dark flex items-center justify-between flex-wrap gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-gradient-to-br from-india-green to-india-green-light rounded-xl flex items-center justify-center shadow-md shadow-india-green/15">
-                      <Activity size={16} className="text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-heading font-bold text-dark text-sm">
-                        Analysis Complete
-                      </h3>
-                      <p className="text-[11px] font-body text-warm-gray mt-0.5">
-                        AI-powered lab report analysis
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Column Labels */}
-                <div className="hidden sm:grid grid-cols-12 gap-3 px-5 py-2.5 bg-cream/60 text-[10px] font-heading font-semibold text-warm-gray uppercase tracking-widest border-b border-cream-dark">
-                  <div className="col-span-1" />
-                  <div className="col-span-3">Parameter</div>
-                  <div className="col-span-2">Value</div>
-                  <div className="col-span-2">Ref. Range</div>
-                  <div className="col-span-1">Status</div>
-                  <div className="col-span-3">Explanation</div>
-                </div>
-
-                {/* Parameter Rows */}
-                <div className="divide-y divide-cream-dark/60">
-                  {result.parameters?.map((param, i) => {
-                    const colors = CLASSIFICATION_COLORS[param.classification] || CLASSIFICATION_COLORS.Unclassified;
-                    const isNormal = param.classification === 'Normal';
-                    const isBorderline = param.classification === 'Borderline';
-                    const isCritical = param.classification === 'Abnormal';
-
-                    const staggerClass = i < 6 ? `animate-stagger-${i + 1}` : 'animate-stagger-6';
-
-                    return (
-                      <div
-                        key={i}
-                        className={`
-                          ${staggerClass}
-                          group grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-3 items-start
-                          px-5 py-3
-                          hover:bg-cream/40 transition-colors duration-200
-                          ${isCritical ? 'accent-bar-rose' : isBorderline ? 'accent-bar-amber' : ''}
-                        `}
-                      >
-                        {/* Status Icon */}
-                        <div className="col-span-1 flex items-center sm:justify-center pt-0.5">
-                          <div
-                            className={`
-                              w-7 h-7 rounded-lg flex items-center justify-center shrink-0
-                              ${isNormal
-                                ? 'bg-green-50 ring-1 ring-green-200'
-                                : isBorderline
-                                  ? 'bg-amber-50 ring-1 ring-amber-200'
-                                  : 'bg-red-50 ring-1 ring-red-200'
-                              }
-                            `}
-                          >
-                            {isNormal ? (
-                              <CheckCircle size={14} className="text-green-600" />
-                            ) : (
-                              <AlertTriangle
-                                size={14}
-                                className={isBorderline ? 'text-amber-600' : 'text-red-600'}
-                              />
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Parameter Name */}
-                        <div className="col-span-3 flex items-center">
-                          <h4 className="font-heading font-semibold text-dark text-xs leading-snug">
-                            {param.name}
-                          </h4>
-                        </div>
-
-                        {/* Value + Unit */}
-                        <div className="col-span-2 flex items-center">
-                          <span className="font-heading text-xs font-bold text-dark tabular-nums">
-                            {param.value}
-                            <span className="text-[11px] font-body font-normal text-warm-gray ml-1">
-                              {param.unit}
-                            </span>
-                          </span>
-                        </div>
-
-                        {/* Reference Range */}
-                        <div className="col-span-2 flex items-center">
-                          <span className="text-[11px] font-body text-warm-gray tabular-nums">
-                            {param.reference_range}
-                          </span>
-                        </div>
-
-                        {/* Classification Badge */}
-                        <div className="col-span-1 flex items-center">
-                          <span
-                            className={`
-                              text-[10px] px-2.5 py-0.5 rounded-full font-heading font-semibold whitespace-nowrap
-                              ${isNormal
-                                ? 'bg-green-100 text-green-700'
-                                : isBorderline
-                                  ? 'bg-amber-100 text-amber-700'
-                                  : 'bg-red-100 text-red-700'
-                              }
-                            `}
-                          >
-                            {param.classification}
-                          </span>
-                        </div>
-
-                        {/* Explanation */}
-                        <div className="col-span-3 flex items-center">
-                          <p className="text-[11px] font-body text-warm-gray leading-relaxed line-clamp-2">
-                            {param.explanation_translated || param.explanation}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* AI Summary Card */}
-              {result.summary && (
-                <div className="animate-stagger-3 noise bg-white rounded-2xl border border-cream-dark shadow-premium p-5 relative overflow-hidden">
-                  {/* Subtle gradient accent */}
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-400 via-primary-500 to-india-green opacity-80" />
-                  <div className="flex items-center gap-2.5 mb-3">
-                    <div className="w-9 h-9 bg-gradient-to-br from-primary-400 to-primary-600 rounded-xl flex items-center justify-center shadow-md shadow-primary-500/15">
-                      <Sparkles size={15} className="text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-display text-lg text-dark italic">
-                        AI Summary
-                      </h3>
-                    </div>
-                  </div>
-                  <p className="font-body text-xs text-dark/80 leading-[1.75] pl-[46px]">
-                    {result.summary}
-                  </p>
-                </div>
-              )}
-
-              {/* Audio Player Card */}
-              {result.audio_url && (
-                <div className="animate-stagger-4 noise bg-white rounded-2xl border border-cream-dark shadow-premium p-5 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-400 to-violet-600 opacity-60" />
-                  <div className="flex items-center gap-2.5 mb-4">
-                    <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-violet-700 rounded-xl flex items-center justify-center shadow-md shadow-violet-500/15">
-                      <Volume2 size={15} className="text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-display text-lg text-dark italic">
-                        Listen in Your Language
-                      </h3>
-                      <p className="text-[11px] font-body text-warm-gray mt-0.5">
-                        Audio explanation powered by Sarvam AI
-                      </p>
-                    </div>
-                  </div>
-                  <div className="pl-[46px]">
-                    <AudioPlayer audioUrl={result.audio_url} label="Listen to explanation" autoPlay />
-                  </div>
-                </div>
-              )}
-
-              {/* Disclaimer */}
-              <div className="animate-stagger-5">
-                <Disclaimer />
-              </div>
-
-              {/* Action Bar */}
-              <div className="animate-stagger-6 flex gap-3">
-                <button
-                  onClick={handleReset}
-                  className="
-                    flex-1 flex items-center justify-center gap-2
-                    py-3 rounded-xl
-                    bg-gradient-to-r from-primary-500 to-primary-600 text-white
-                    font-heading font-bold text-sm
-                    hover:from-primary-600 hover:to-primary-700
-                    active:scale-[0.98] transition-all duration-200
-                    shadow-lg shadow-primary-500/20
-                  "
-                >
-                  <RotateCcw size={15} />
-                  Analyze Another Report
-                </button>
-                <button
-                  className="
-                    px-5 py-3 rounded-xl
-                    border border-cream-dark text-warm-gray
-                    hover:bg-cream hover:border-warm-gray/30 hover:text-dark
-                    transition-all duration-200
-                  "
-                >
-                  <Download size={16} />
-                </button>
-              </div>
-            </div>
-          )}
+          <div ref={messagesEndRef} />
         </div>
 
-        {/* ── Right Sidebar (1/3) ── */}
-        <div className="space-y-3">
+        {/* Disclaimer */}
+        <div className="px-4 pb-1"><Disclaimer /></div>
 
-          {/* Previous Reports */}
-          <div className="animate-stagger-4 noise bg-white rounded-2xl border border-cream-dark shadow-premium p-3">
-            <h4 className="font-heading font-bold text-dark text-xs flex items-center gap-2 mb-2.5">
-              <div className="w-7 h-7 bg-gradient-to-br from-primary-400 to-primary-600 rounded-lg flex items-center justify-center shadow-sm shadow-primary-500/15">
-                <Clock size={12} className="text-white" />
-              </div>
-              Previous Reports
-            </h4>
-            <div className="space-y-1">
-              {previousReports.length === 0 ? (
-                <p className="text-[11px] font-body text-warm-gray px-2 py-3 text-center">No previous reports</p>
-              ) : previousReports.map((report, i) => {
-                const staggerClass = `animate-stagger-${Math.min(i + 4, 6)}`;
-                const date = new Date(report.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
-                return (
-                  <div
-                    key={report.id}
-                    className={`
-                      ${staggerClass}
-                      flex items-center gap-2 p-2 rounded-lg
-                      hover:bg-cream transition-all duration-200 cursor-pointer group
-                    `}
-                  >
-                    <div className="w-7 h-7 bg-cream rounded-lg flex items-center justify-center shrink-0 group-hover:bg-primary-50 group-hover:ring-1 group-hover:ring-primary-200 transition-all duration-200">
-                      <FileText size={12} className="text-warm-gray group-hover:text-primary-500 transition-colors" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[11px] font-heading font-semibold text-dark truncate">
-                        {report.title}
-                      </p>
-                      <p className="text-[9px] font-body text-warm-gray mt-0.5">{date}</p>
-                    </div>
-                    <ArrowRight
-                      size={11}
-                      className="text-cream-dark group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all duration-200 shrink-0"
-                    />
-                  </div>
-                );
-              })}
+        {/* Recording bar */}
+        {isRecording && (
+          <div className="px-4 pb-2 animate-fade-in">
+            <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+              </span>
+              <span className="text-xs text-red-600 font-heading font-semibold flex-1">Recording {formatTime(recordDuration)}</span>
+              {liveTranscript && <span className="text-xs text-dark font-body italic truncate max-w-[50%]">{liveTranscript}</span>}
+              <button onClick={stopRecording} className="text-xs bg-red-500 text-white px-3 py-1 rounded-lg font-heading font-semibold hover:bg-red-600">Send</button>
             </div>
           </div>
+        )}
 
-          {/* How It Works */}
-          <div className="animate-stagger-5 noise bg-white rounded-2xl border border-cream-dark shadow-premium p-3">
-            <h4 className="font-heading font-bold text-dark text-xs flex items-center gap-2 mb-2.5">
-              <div className="w-7 h-7 bg-gradient-to-br from-india-green to-india-green-light rounded-lg flex items-center justify-center shadow-sm shadow-india-green/15">
-                <Info size={12} className="text-white" />
-              </div>
-              How It Works
-            </h4>
-            <div className="space-y-2">
-              {HOW_IT_WORKS.map((step, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <span className="w-5 h-5 bg-primary-50 border border-primary-200 rounded-full flex items-center justify-center text-[9px] font-heading font-bold text-primary-600 shrink-0 mt-0.5">
-                    {i + 1}
-                  </span>
-                  <p className="text-[11px] font-body text-dark/70 leading-relaxed pt-0.5">
-                    {step}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* Input Bar */}
+        <div className="bg-white border-t border-gray-100 px-3 py-2.5 shrink-0">
+          <form onSubmit={handleTextSubmit} className="flex items-end gap-2">
+            {/* Upload button */}
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isLoading}
+              className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-gray-100 text-gray-500 hover:bg-primary-50 hover:text-primary-500 transition-colors disabled:opacity-40"
+              title="Upload report">
+              <Paperclip size={18} />
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,application/pdf" capture="environment" onChange={handleFileUpload} className="hidden" />
 
-          {/* Powered By - Tech Stack Pills */}
-          <div className="animate-stagger-6 noise bg-white rounded-2xl border border-cream-dark shadow-premium p-3">
-            <h4 className="font-heading font-bold text-dark text-xs flex items-center gap-2 mb-2">
-              <div className="w-7 h-7 bg-gradient-to-br from-dark to-dark-muted rounded-lg flex items-center justify-center shadow-sm">
-                <Shield size={12} className="text-white" />
-              </div>
-              Powered By
-            </h4>
-            <div className="flex flex-wrap gap-1.5">
-              {[
-                { label: 'Amazon Textract', color: 'bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100' },
-                { label: 'Amazon Bedrock', color: 'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100' },
-                { label: 'Sarvam AI', color: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' },
-              ].map(({ label, color }) => (
-                <span
-                  key={label}
-                  className={`text-[10px] px-3 py-1.5 rounded-full border font-heading font-semibold transition-colors duration-200 cursor-default ${color}`}
-                >
-                  {label}
-                </span>
-              ))}
+            {/* Mic */}
+            <button type="button" onClick={() => isRecording ? stopRecording() : startRecording()} disabled={isLoading}
+              className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all ${
+                isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-gray-100 text-gray-500 hover:bg-primary-50 hover:text-primary-500'
+              } disabled:opacity-40`}>
+              {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
+            </button>
+
+            {/* Text input */}
+            <div className="flex-1">
+              <input type="text" value={isRecording ? liveTranscript : textInput}
+                onChange={(e) => !isRecording && setTextInput(e.target.value)}
+                placeholder={isRecording ? 'Listening...' : (PLACEHOLDERS[language] || PLACEHOLDERS.english)}
+                disabled={isLoading || isRecording}
+                className="w-full px-4 py-2.5 rounded-2xl bg-gray-100 border border-gray-200 font-body text-sm text-dark focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-300 focus:bg-white disabled:opacity-50 placeholder:text-gray-400 transition-all" />
             </div>
-          </div>
+
+            {/* Send */}
+            <button type="submit" disabled={(!textInput.trim() && !isRecording) || isLoading}
+              className="w-10 h-10 bg-primary-500 text-white rounded-full flex items-center justify-center shrink-0 hover:bg-primary-600 disabled:opacity-30 transition-all active:scale-95 shadow-md">
+              <Send size={16} />
+            </button>
+          </form>
         </div>
       </div>
     </div>
