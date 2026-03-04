@@ -2,7 +2,7 @@ import json
 import uuid
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from app.models.schemas import MedScribeTextRequest
-from app.services.bedrock_service import invoke_claude
+from app.services.bedrock_service import invoke_model
 from app.services.sarvam_service import speech_to_text, text_to_speech, translate_text
 from app.services.s3_service import upload_audio_and_get_url
 from app.prompts.soap_notes import MEDSCRIBE_SYSTEM, MEDSCRIBE_PROMPT
@@ -42,7 +42,7 @@ async def process_consultation(
     prompt = MEDSCRIBE_PROMPT.format(transcription=transcription_en)
 
     try:
-        raw = invoke_claude(prompt, system=MEDSCRIBE_SYSTEM)
+        raw = invoke_model(prompt, system=MEDSCRIBE_SYSTEM)
         json_str = raw
         if "```json" in json_str:
             json_str = json_str.split("```json")[1].split("```")[0]
@@ -103,7 +103,7 @@ async def _process_transcription(transcription: str, language: str) -> dict:
     prompt = MEDSCRIBE_PROMPT.format(transcription=transcription_en)
 
     try:
-        raw = invoke_claude(prompt, system=MEDSCRIBE_SYSTEM)
+        raw = invoke_model(prompt, system=MEDSCRIBE_SYSTEM)
         json_str = raw
         if "```json" in json_str:
             json_str = json_str.split("```json")[1].split("```")[0]

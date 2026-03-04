@@ -1,7 +1,7 @@
 import json
 import uuid
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
-from app.services.bedrock_service import invoke_claude_with_image
+from app.services.bedrock_service import invoke_model_with_image
 from app.services.textract_service import extract_text_from_image
 from app.services.sarvam_service import translate_text, text_to_speech
 from app.services.s3_service import upload_file, upload_audio_and_get_url
@@ -37,7 +37,7 @@ async def analyze_lab_report(
     prompt = LAB_ANALYSIS_PROMPT.format(extracted_text=extracted_text)
 
     try:
-        raw_response = invoke_claude_with_image(prompt, image_bytes, media_type, system=LAB_ANALYSIS_SYSTEM)
+        raw_response = invoke_model_with_image(prompt, image_bytes, media_type, system=LAB_ANALYSIS_SYSTEM)
         # Parse JSON from response (Claude may wrap it in markdown)
         json_str = raw_response
         if "```json" in json_str:

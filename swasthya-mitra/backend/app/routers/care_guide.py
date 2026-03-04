@@ -2,7 +2,7 @@ import json
 import uuid
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from app.models.schemas import CareGuideTextRequest
-from app.services.bedrock_service import invoke_claude
+from app.services.bedrock_service import invoke_model
 from app.services.sarvam_service import speech_to_text, text_to_speech, translate_text
 from app.services.s3_service import upload_audio_and_get_url
 from app.prompts.medical_qa import CARE_GUIDE_SYSTEM, CARE_GUIDE_PROMPT, EMERGENCY_KEYWORDS
@@ -49,7 +49,7 @@ async def process_question(question: str, language: str, session_id: str | None)
 
     raw = None
     try:
-        raw = invoke_claude(prompt, system=CARE_GUIDE_SYSTEM)
+        raw = invoke_model(prompt, system=CARE_GUIDE_SYSTEM)
         # Parse JSON
         json_str = raw
         if "```json" in json_str:
@@ -61,7 +61,7 @@ async def process_question(question: str, language: str, session_id: str | None)
         is_emergency = is_emergency or result.get("is_emergency", False)
     except (json.JSONDecodeError, Exception) as e:
         import traceback
-        print(f"[CARE_GUIDE_ERROR] invoke_claude failed: {type(e).__name__}: {e}")
+        print(f"[CARE_GUIDE_ERROR] invoke_model failed: {type(e).__name__}: {e}")
         traceback.print_exc()
         answer = raw if isinstance(raw, str) else "I'm sorry, I couldn't process your question. Please try again."
 

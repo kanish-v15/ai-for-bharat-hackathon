@@ -8,9 +8,8 @@ class Settings(BaseSettings):
     s3_bucket: str = "swasthyamitra-uploads"
     dynamodb_table: str = "swasthyamitra-interactions"
 
-    # Bedrock Models
-    bedrock_model_id: str = "us.anthropic.claude-sonnet-4-6"
-    bedrock_lite_model_id: str = "amazon.nova-lite-v1:0"
+    # Bedrock Model
+    bedrock_model_id: str = "amazon.nova-lite-v1:0"
 
     # Sarvam AI
     sarvam_api_key: str = ""
