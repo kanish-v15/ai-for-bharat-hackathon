@@ -10,6 +10,7 @@ class Settings(BaseSettings):
 
     # Bedrock Model
     bedrock_model_id: str = "amazon.nova-lite-v1:0"
+    bedrock_lite_model_id: str = "amazon.nova-lite-v1:0"
 
     # Sarvam AI
     sarvam_api_key: str = ""

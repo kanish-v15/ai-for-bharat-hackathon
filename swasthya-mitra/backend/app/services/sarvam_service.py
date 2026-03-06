@@ -24,19 +24,29 @@ async def speech_to_text(audio_bytes: bytes, language: str = "hindi") -> str:
     """Transcribe audio using Sarvam Saaras v3 STT (multipart file upload)."""
     lang_code = LANGUAGE_CODES.get(language, "hi-IN")
 
+    print(f"[SARVAM_STT] Transcribing {len(audio_bytes)} bytes, lang={lang_code}")
+
     async with httpx.AsyncClient(timeout=120) as client:
+        # Use explicit multipart to avoid httpx files+data issues
         response = await client.post(
             f"{settings.sarvam_api_base}/speech-to-text",
             headers=HEADERS,
-            files={"file": ("audio.webm", audio_bytes, "audio/webm")},
-            data={
-                "language_code": lang_code,
-                "model": "saaras:v3",
-                "mode": "transcribe",
+            files={
+                "file": ("audio.webm", audio_bytes, "audio/webm"),
+                "model": (None, "saaras:v3"),
+                "language_code": (None, lang_code),
+                "mode": (None, "transcribe"),
             },
         )
-        response.raise_for_status()
-        return response.json().get("transcript", "")
+
+        if response.status_code != 200:
+            error_body = response.text
+            print(f"[SARVAM_STT] Error {response.status_code}: {error_body}")
+            raise Exception(f"Sarvam STT error {response.status_code}: {error_body}")
+
+        result = response.json()
+        print(f"[SARVAM_STT] Success: {result.get('transcript', '')[:100]}")
+        return result.get("transcript", "")
 
 
 async def text_to_speech(text: str, language: str = "hindi") -> bytes:
