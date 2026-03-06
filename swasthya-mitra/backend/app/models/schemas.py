@@ -58,6 +58,7 @@ class MedScribeTextRequest(BaseModel):
     text: str
     language: str = "hindi"
     doctor_id: str = "demo-doctor"
+    patient_id: str = None
 
 
 class MedScribeResponse(BaseModel):

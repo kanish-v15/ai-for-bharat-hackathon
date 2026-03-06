@@ -21,20 +21,18 @@ HEADERS = {
 
 
 async def speech_to_text(audio_bytes: bytes, language: str = "hindi") -> str:
-    """Transcribe audio using Sarvam Saarika STT."""
-    import base64
-
+    """Transcribe audio using Sarvam Saaras v3 STT (multipart file upload)."""
     lang_code = LANGUAGE_CODES.get(language, "hi-IN")
 
-    async with httpx.AsyncClient(timeout=60) as client:
+    async with httpx.AsyncClient(timeout=120) as client:
         response = await client.post(
             f"{settings.sarvam_api_base}/speech-to-text",
             headers=HEADERS,
-            json={
-                "input": base64.b64encode(audio_bytes).decode("utf-8"),
+            files={"file": ("audio.webm", audio_bytes, "audio/webm")},
+            data={
                 "language_code": lang_code,
-                "model": "saarika:v2",
-                "with_timestamps": False,
+                "model": "saaras:v3",
+                "mode": "transcribe",
             },
         )
         response.raise_for_status()

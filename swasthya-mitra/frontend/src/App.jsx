@@ -7,6 +7,7 @@ import DoctorDashboard from './pages/DoctorDashboard';
 import LabSamjho from './pages/LabSamjho';
 import CareGuide from './pages/CareGuide';
 import MedScribe from './pages/MedScribe';
+import PatientView from './pages/PatientView';
 import HealthTimeline from './pages/HealthTimeline';
 import ProfileSetup from './pages/ProfileSetup';
 import Profile from './pages/Profile';
@@ -34,6 +35,7 @@ export default function App() {
           <Route path="/lab-samjho" element={<LabSamjho />} />
           <Route path="/care-guide" element={<CareGuide />} />
           <Route path="/medscribe" element={<MedScribe />} />
+          <Route path="/medscribe/patient/:id" element={<PatientView />} />
           <Route path="/health-timeline" element={<HealthTimeline />} />
         </Route>
       </Routes>

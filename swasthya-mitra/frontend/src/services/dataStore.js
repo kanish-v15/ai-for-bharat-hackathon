@@ -56,8 +56,125 @@ export function getLastLabReport() {
   return reports.length > 0 ? reports[0] : null;
 }
 
+export function deleteInteraction(id) {
+  const interactions = getInteractions();
+  const filtered = interactions.filter(i => i.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+}
+
 export function clearAllData() {
   localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(PATIENTS_KEY);
+}
+
+/* ═══════════════════════════════════════════
+   Patient Management (Doctor's patient roster)
+   ═══════════════════════════════════════════ */
+const PATIENTS_KEY = 'swasthya-patients';
+
+export function getPatients() {
+  const raw = localStorage.getItem(PATIENTS_KEY);
+  return raw ? JSON.parse(raw) : [];
+}
+
+export function getPatient(id) {
+  return getPatients().find(p => p.id === id) || null;
+}
+
+export function savePatient(patient) {
+  const patients = getPatients();
+  if (patient.id) {
+    // Update existing
+    const idx = patients.findIndex(p => p.id === patient.id);
+    if (idx >= 0) {
+      patients[idx] = { ...patients[idx], ...patient };
+      localStorage.setItem(PATIENTS_KEY, JSON.stringify(patients));
+      return patients[idx];
+    }
+  }
+  // Create new
+  const newPatient = {
+    ...patient,
+    id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+    consultations: patient.consultations || [],
+    labReports: patient.labReports || [],
+    createdAt: new Date().toISOString(),
+  };
+  patients.unshift(newPatient);
+  localStorage.setItem(PATIENTS_KEY, JSON.stringify(patients.slice(0, 50)));
+  return newPatient;
+}
+
+export function deletePatientRecord(id) {
+  const patients = getPatients().filter(p => p.id !== id);
+  localStorage.setItem(PATIENTS_KEY, JSON.stringify(patients));
+}
+
+export function addConsultationToPatient(patientId, data) {
+  const patients = getPatients();
+  const patient = patients.find(p => p.id === patientId);
+  if (!patient) return null;
+
+  const consultation = {
+    id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+    date: new Date().toISOString(),
+    soap_note: data.soap_note,
+    medications: data.medications,
+    patient_instructions: data.patient_instructions,
+    patient_instructions_translated: data.patient_instructions_translated,
+    patient_audio_url: data.patient_audio_url,
+    transcription: data.transcription,
+    language: data.language,
+    interaction_id: data.interaction_id,
+  };
+  if (!patient.consultations) patient.consultations = [];
+  patient.consultations.unshift(consultation);
+  // Keep max 50 consultations per patient
+  patient.consultations = patient.consultations.slice(0, 50);
+  localStorage.setItem(PATIENTS_KEY, JSON.stringify(patients));
+  return consultation;
+}
+
+export function getPatientConsultations(patientId) {
+  const patient = getPatient(patientId);
+  return patient?.consultations || [];
+}
+
+export function addLabReportToPatient(patientId, reportData) {
+  const patients = getPatients();
+  const patient = patients.find(p => p.id === patientId);
+  if (!patient) return null;
+  const report = {
+    id: reportData.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()),
+    date: reportData.date || new Date().toISOString(),
+    title: reportData.title || 'Lab Report',
+    summary: reportData.summary || '',
+    parameters: reportData.data?.parameters || reportData.parameters || [],
+    data: reportData.data || reportData,
+  };
+  if (!patient.labReports) patient.labReports = [];
+  patient.labReports.unshift(report);
+  patient.labReports = patient.labReports.slice(0, 30);
+  localStorage.setItem(PATIENTS_KEY, JSON.stringify(patients));
+  return report;
+}
+
+export function removeLabReportFromPatient(patientId, reportId) {
+  const patients = getPatients();
+  const patient = patients.find(p => p.id === patientId);
+  if (!patient) return;
+  patient.labReports = (patient.labReports || []).filter(r => r.id !== reportId);
+  localStorage.setItem(PATIENTS_KEY, JSON.stringify(patients));
+}
+
+export function seedDemoPatients() {
+  if (getPatients().length > 0) return;
+  const demo = [
+    { name: 'Ramesh Kumar', age: 45, gender: 'Male', phone: '9876543210', language: 'hindi', bloodGroup: 'B+', allergies: 'Penicillin', conditions: 'Hypertension', medications: 'Amlodipine 5mg' },
+    { name: 'Sunita Patel', age: 32, gender: 'Female', phone: '9876543211', language: 'tamil', bloodGroup: 'O+', allergies: '', conditions: '', medications: '' },
+    { name: 'Meena Rao', age: 58, gender: 'Female', phone: '9876543212', language: 'english', bloodGroup: 'A+', allergies: '', conditions: 'Diabetes Type 2', medications: 'Metformin 500mg' },
+  ];
+  demo.forEach(p => savePatient(p));
 }
 
 function generateTitle(type, data) {

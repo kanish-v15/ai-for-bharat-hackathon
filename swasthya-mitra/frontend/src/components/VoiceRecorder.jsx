@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { Mic, Square } from 'lucide-react';
+import recordOrb from '../../icons/image 96.png';
 
 export default function VoiceRecorder({ onRecordingComplete, maxDuration = 30, disabled = false, compact = false }) {
   const [isRecording, setIsRecording] = useState(false);
@@ -71,14 +72,15 @@ export default function VoiceRecorder({ onRecordingComplete, maxDuration = 30, d
       <button
         onClick={isRecording ? stopRecording : startRecording}
         disabled={disabled}
-        className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all active:scale-95 disabled:opacity-50 shrink-0 ${
-          isRecording
-            ? 'bg-red-500 text-white animate-pulse'
-            : 'bg-gray-100 border border-gray-200 text-gray-500 hover:bg-primary-50 hover:text-primary-500 hover:border-primary-200'
+        className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95 disabled:opacity-50 shrink-0 overflow-hidden ${
+          isRecording ? 'scale-110' : 'hover:scale-105'
         }`}
         title={isRecording ? `Recording ${formatTime(duration)}` : 'Voice input'}
       >
-        {isRecording ? <Square size={16} /> : <Mic size={18} />}
+        <img src={recordOrb} alt="" className={`absolute inset-0 w-full h-full object-cover rounded-full ${isRecording ? 'animate-pulse' : ''}`} />
+        <span className="relative z-10">
+          {isRecording ? <Square size={14} className="text-white drop-shadow-md" /> : <Mic size={16} className="text-white drop-shadow-md" />}
+        </span>
       </button>
     );
   }
@@ -88,15 +90,16 @@ export default function VoiceRecorder({ onRecordingComplete, maxDuration = 30, d
       <button
         onClick={isRecording ? stopRecording : startRecording}
         disabled={disabled}
-        className={`relative w-20 h-20 rounded-full flex items-center justify-center text-white text-3xl shadow-lg transition-all active:scale-95 disabled:opacity-50 ${
-          isRecording
-            ? 'bg-red-500 animate-pulse'
-            : 'bg-emerald-600 hover:bg-emerald-700'
+        className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all active:scale-95 disabled:opacity-50 ${
+          isRecording ? 'scale-110' : 'hover:scale-105'
         }`}
       >
-        {isRecording ? <Square size={28} /> : <Mic size={28} />}
+        <img src={recordOrb} alt="" className={`w-20 h-20 object-contain rounded-full ${isRecording ? 'animate-pulse' : ''}`} />
+        <div className="absolute inset-0 flex items-center justify-center">
+          {isRecording ? <Square size={28} className="text-white drop-shadow-md" fill="white" /> : <Mic size={28} className="text-white drop-shadow-md" />}
+        </div>
         {isRecording && (
-          <span className="absolute -inset-2 rounded-full border-2 border-red-400 animate-ping opacity-40" />
+          <span className="absolute -inset-2 rounded-full border-2 border-purple-300/60 animate-ping pointer-events-none" />
         )}
       </button>
       <span className="text-sm text-gray-500">

@@ -13,6 +13,7 @@ const PAGE_TITLES = {
   '/lab-samjho': 'Lab Samjho',
   '/care-guide': 'Care Guide',
   '/medscribe': 'MedScribe',
+  '/medscribe/patient': 'Patient Record',
   '/settings': 'Settings',
   '/health-timeline': 'Health Timeline',
   '/profile-setup': 'Profile Setup',
@@ -25,12 +26,19 @@ const PAGE_SUBTITLES = {
   '/lab-samjho': 'Understand your lab reports',
   '/care-guide': 'AI health companion',
   '/medscribe': 'Smart documentation',
+  '/medscribe/patient': 'Details, consultations & documents',
   '/health-timeline': 'Your complete health journey',
   '/profile-setup': 'Complete your health profile',
   '/profile': 'View and edit your details',
 };
 
 const NO_GUARD_ROUTES = ['/profile-setup', '/profile'];
+
+// Match dynamic routes for title lookups
+const getRouteKey = (pathname) => {
+  if (pathname.startsWith('/medscribe/patient/')) return '/medscribe/patient';
+  return pathname;
+};
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -59,10 +67,11 @@ export default function AppLayout() {
     '/medscribe': 'medscribe.subtitle', '/health-timeline': 'healthTimeline.subtitle',
     '/profile-setup': 'profile.setupSubtitle', '/profile': 'profile.subtitle',
   };
-  const titleKey = PAGE_TITLE_KEYS[location.pathname];
-  const subtitleKey = PAGE_SUBTITLE_KEYS[location.pathname];
-  const pageTitle = titleKey ? t(titleKey) : (PAGE_TITLES[location.pathname] || 'SwasthyaMitra');
-  const pageSubtitle = subtitleKey ? t(subtitleKey) : PAGE_SUBTITLES[location.pathname];
+  const routeKey = getRouteKey(location.pathname);
+  const titleKey = PAGE_TITLE_KEYS[routeKey];
+  const subtitleKey = PAGE_SUBTITLE_KEYS[routeKey];
+  const pageTitle = titleKey ? t(titleKey) : (PAGE_TITLES[routeKey] || 'SwasthyaMitra');
+  const pageSubtitle = subtitleKey ? t(subtitleKey) : PAGE_SUBTITLES[routeKey];
 
   return (
     <div className="min-h-screen bg-cream flex">

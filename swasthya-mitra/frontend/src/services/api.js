@@ -53,11 +53,12 @@ export async function askCareGuideText(text, language, userId = 'demo-user', ses
 }
 
 // MedScribe API
-export async function processMedScribe(audioBlob, language, doctorId = 'demo-doctor') {
+export async function processMedScribe(audioBlob, language, doctorId = 'demo-doctor', patientId = null) {
   const formData = new FormData();
   formData.append('audio', audioBlob, 'consultation.webm');
   formData.append('language', language);
   formData.append('doctor_id', doctorId);
+  if (patientId) formData.append('patient_id', patientId);
 
   const { data } = await api.post('/medscribe/process', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -65,11 +66,12 @@ export async function processMedScribe(audioBlob, language, doctorId = 'demo-doc
   return data;
 }
 
-export async function processMedScribeText(text, language, doctorId = 'demo-doctor') {
+export async function processMedScribeText(text, language, doctorId = 'demo-doctor', patientId = null) {
   const { data } = await api.post('/medscribe/process-text', {
     text,
     language,
     doctor_id: doctorId,
+    patient_id: patientId,
   });
   return data;
 }

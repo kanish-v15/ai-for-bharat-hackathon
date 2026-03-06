@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
-import { Mic, MicOff, CheckCircle } from 'lucide-react';
+import { Mic, MicOff, CheckCircle, Square } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import recordOrb from '../../../icons/image 96.png';
 
 const SPEECH_LANG_CODES = {
   hindi: 'hi-IN', tamil: 'ta-IN', english: 'en-IN',
@@ -157,16 +158,16 @@ export default function VoiceFormField({
             onClick={handleMicClick}
             disabled={disabled}
             className={`
-              w-10 h-10 flex items-center justify-center shrink-0 mr-0.5 rounded-lg transition-all duration-200
-              ${isRecording
-                ? 'bg-red-500 text-white animate-pulse'
-                : 'bg-gray-100 text-gray-400 hover:bg-primary-50 hover:text-primary-500'
-              }
+              relative w-10 h-10 flex items-center justify-center shrink-0 mr-0.5 rounded-full transition-all duration-200 overflow-hidden
+              ${isRecording ? 'scale-110' : 'hover:scale-105'}
               disabled:opacity-30
             `}
             title={isRecording ? 'Stop recording' : 'Speak to fill'}
           >
-            {isRecording ? <MicOff size={16} /> : <Mic size={16} />}
+            <img src={recordOrb} alt="" className={`absolute inset-0 w-full h-full object-cover rounded-full ${isRecording ? 'animate-pulse' : ''}`} />
+            <span className="relative z-10">
+              {isRecording ? <Square size={14} className="text-white drop-shadow-md" fill="white" /> : <Mic size={14} className="text-white drop-shadow-md" strokeWidth={2.5} />}
+            </span>
           </button>
         )}
       </div>

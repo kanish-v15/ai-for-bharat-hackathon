@@ -15,6 +15,7 @@ async def process_consultation(
     audio: UploadFile = File(...),
     language: str = Form("hindi"),
     doctor_id: str = Form("demo-doctor"),
+    patient_id: str = Form(None),
 ):
     audio_bytes = await audio.read()
 
@@ -86,6 +87,7 @@ async def process_consultation(
         "patient_instructions_translated": patient_instructions_translated,
         "patient_audio_url": patient_audio_url,
         "interaction_id": interaction_id,
+        "patient_id": patient_id,
     }
 
 
@@ -156,4 +158,6 @@ async def process_consultation_text(request: MedScribeTextRequest):
     if not request.text.strip():
         raise HTTPException(status_code=400, detail="Please provide consultation text.")
 
-    return await _process_transcription(request.text, request.language)
+    result = await _process_transcription(request.text, request.language)
+    result["patient_id"] = request.patient_id
+    return result
