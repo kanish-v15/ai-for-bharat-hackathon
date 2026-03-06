@@ -84,6 +84,26 @@ export async function updateMedScribe(interactionId, soapNote, confirmedMedicati
   return data;
 }
 
+// STT API
+export async function transcribeAudio(audioBlob, language) {
+  const formData = new FormData();
+  formData.append('audio', audioBlob, 'recording.webm');
+  formData.append('language', language);
+  const { data } = await api.post('/stt/transcribe', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data.transcript;
+}
+
+// TTS API - Get audio for text (Amazon Polly / Sarvam)
+export async function speakText(text, language) {
+  const { data } = await api.post('/tts/speak',
+    { text, language },
+    { responseType: 'arraybuffer' }
+  );
+  return data; // ArrayBuffer of audio
+}
+
 // History API
 export async function getUserHistory(userId = 'demo-user') {
   const { data } = await api.get(`/history/${userId}`);

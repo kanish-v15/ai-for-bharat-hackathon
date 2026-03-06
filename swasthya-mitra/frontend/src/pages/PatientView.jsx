@@ -2,7 +2,8 @@ import { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, User, Stethoscope, Clock, FileText, Edit3, Download,
-  Phone, Heart, Shield, Pill, Activity, Trash2,
+  Phone, Heart, Shield, Pill, Activity, Trash2, MapPin, Droplets,
+  Languages, Calendar,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
@@ -57,7 +58,7 @@ export default function PatientView() {
 
   if (!patient) {
     return (
-      <div className="max-w-4xl mx-auto flex flex-col items-center justify-center py-20 text-center">
+      <div className="-mx-4 sm:-mx-6 -my-5 min-h-[calc(100vh-64px)] flex flex-col items-center justify-center bg-white">
         <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4">
           <User size={28} className="text-warm-gray/40" />
         </div>
@@ -97,72 +98,130 @@ export default function PatientView() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4">
-      {/* Top Bar */}
-      <div className="flex items-center gap-3">
-        <button onClick={() => navigate('/medscribe')}
-          className="w-9 h-9 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-warm-gray hover:text-primary-500 hover:border-primary-300 transition-colors shadow-sm">
-          <ArrowLeft size={16} />
-        </button>
-        <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${getGradient(patient.name)} flex items-center justify-center shadow-md`}>
-          <span className="text-white font-heading font-bold text-sm">{getInitials(patient.name)}</span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <h1 className="font-heading font-bold text-dark text-lg tracking-tight truncate">{patient.name}</h1>
-          <div className="flex items-center gap-2 mt-0.5">
-            {patient.age && <span className="text-xs text-warm-gray font-body">{patient.age} years</span>}
-            {patient.gender && <span className="text-xs text-warm-gray font-body">{patient.gender}</span>}
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-heading font-medium bg-primary-50 text-primary-700">{langLabel}</span>
+    <div className="-mx-4 sm:-mx-6 -my-5 min-h-[calc(100vh-64px)] flex flex-col bg-white">
+      {/* ── Full-width Header ── */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center gap-4">
+          <button onClick={() => navigate('/medscribe')}
+            className="w-9 h-9 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center text-warm-gray hover:text-primary-500 hover:border-primary-300 transition-colors">
+            <ArrowLeft size={16} />
+          </button>
+
+          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${getGradient(patient.name)} flex items-center justify-center shadow-md`}>
+            <span className="text-white font-heading font-bold text-base">{getInitials(patient.name)}</span>
           </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <button onClick={() => setShowEditModal(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-gray-200 text-warm-gray hover:text-primary-500 hover:border-primary-300 font-heading font-semibold text-xs transition-colors shadow-sm">
-            <Edit3 size={13} /> Edit
-          </button>
-          <button onClick={handleDelete}
-            className="w-9 h-9 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-warm-gray hover:text-red-500 hover:border-red-300 transition-colors shadow-sm">
-            <Trash2 size={14} />
-          </button>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2.5">
+              <h1 className="font-heading font-bold text-dark text-xl tracking-tight truncate">{patient.name}</h1>
+              <span className="shrink-0 text-[10px] px-2.5 py-0.5 rounded-full font-heading font-semibold bg-green-50 text-green-600 border border-green-200">
+                Active
+              </span>
+            </div>
+            <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+              {patient.phone && (
+                <span className="flex items-center gap-1 text-xs text-warm-gray font-body">
+                  <Phone size={11} /> {patient.phone}
+                </span>
+              )}
+              {patient.age && (
+                <span className="flex items-center gap-1 text-xs text-warm-gray font-body">
+                  <Calendar size={11} /> {patient.age} years
+                </span>
+              )}
+              {patient.gender && (
+                <span className="text-xs text-warm-gray font-body">{patient.gender}</span>
+              )}
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-heading font-medium bg-primary-50 text-primary-700">{langLabel}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button onClick={() => setShowEditModal(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-gray-200 text-warm-gray hover:text-primary-500 hover:border-primary-300 font-heading font-semibold text-xs transition-colors shadow-sm">
+              <Edit3 size={13} /> Edit
+            </button>
+            <button onClick={handleDelete}
+              className="w-9 h-9 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-warm-gray hover:text-red-500 hover:border-red-300 transition-colors shadow-sm">
+              <Trash2 size={14} />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Tab Bar */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
-        <div className="flex border-b border-gray-100 px-3 pt-1 gap-0.5 overflow-x-auto">
-          {TABS.map(({ id, label, icon: Icon }) => (
-            <button key={id} onClick={() => setActiveTab(id)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-t-lg text-xs font-heading font-semibold transition-all whitespace-nowrap
-                ${activeTab === id
-                  ? 'bg-white text-primary-600 border border-gray-100 border-b-white -mb-px shadow-sm'
-                  : 'text-warm-gray hover:text-dark hover:bg-gray-50/60'}`}>
-              <Icon size={14} />
-              {label}
-              {id === 'history' && consultations.length > 0 && (
-                <span className="text-[9px] bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded-full font-bold">{consultations.length}</span>
-              )}
-              {id === 'documents' && (patient.labReports?.length || 0) > 0 && (
-                <span className="text-[9px] bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded-full font-bold">{patient.labReports.length}</span>
-              )}
+      {/* ── Body: Sidebar Tabs + Content ── */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left: Vertical Tabs */}
+        <div className="w-48 shrink-0 bg-gray-50/80 border-r border-gray-200 py-3 px-2 hidden sm:block">
+          <nav className="space-y-0.5">
+            {TABS.map(({ id: tabId, label, icon: Icon }) => (
+              <button
+                key={tabId}
+                onClick={() => setActiveTab(tabId)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-heading font-semibold transition-all
+                  ${activeTab === tabId
+                    ? 'bg-white text-primary-600 shadow-sm border border-gray-200/80'
+                    : 'text-warm-gray hover:text-dark hover:bg-white/60'
+                  }`}
+              >
+                <Icon size={15} />
+                {label}
+                {tabId === 'history' && consultations.length > 0 && (
+                  <span className="text-[9px] bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded-full font-bold ml-auto">{consultations.length}</span>
+                )}
+                {tabId === 'documents' && (patient.labReports?.length || 0) > 0 && (
+                  <span className="text-[9px] bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded-full font-bold ml-auto">{patient.labReports.length}</span>
+                )}
+              </button>
+            ))}
+          </nav>
+
+          {/* Quick Stats in sidebar */}
+          <div className="mt-6 px-1 space-y-2">
+            <p className="text-[9px] text-warm-gray uppercase tracking-wider font-heading font-semibold px-2">Quick Stats</p>
+            {[
+              { label: 'Consultations', value: consultations.length, icon: Stethoscope, color: 'text-primary-500' },
+              { label: 'Lab Reports', value: patient.labReports?.length || 0, icon: FileText, color: 'text-amber-500' },
+              { label: 'Since', value: patient.createdAt ? new Date(patient.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '--', icon: Calendar, color: 'text-gray-400' },
+            ].map(({ label, value, icon: StatIcon, color }) => (
+              <div key={label} className="flex items-center gap-2 px-2 py-1.5">
+                <StatIcon size={12} className={color} />
+                <span className="text-[10px] text-warm-gray font-body flex-1">{label}</span>
+                <span className="text-xs font-heading font-bold text-dark">{value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Mobile: Horizontal tabs */}
+        <div className="sm:hidden flex border-b border-gray-200 px-3 overflow-x-auto bg-gray-50/50 shrink-0 absolute left-0 right-0" style={{ top: 'auto' }}>
+          {TABS.map(({ id: tabId, label, icon: Icon }) => (
+            <button key={tabId} onClick={() => setActiveTab(tabId)}
+              className={`flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-heading font-semibold whitespace-nowrap transition-all border-b-2
+                ${activeTab === tabId
+                  ? 'text-primary-600 border-primary-500'
+                  : 'text-warm-gray border-transparent hover:text-dark'
+                }`}>
+              <Icon size={13} /> {label}
             </button>
           ))}
         </div>
 
-        {/* Tab Content */}
-        <div className="p-5">
+        {/* Right: Content Area */}
+        <div className="flex-1 overflow-y-auto p-6">
           {/* ─── Details Tab ─── */}
           {activeTab === 'details' && (
-            <div className="space-y-5">
+            <div className="space-y-6 max-w-5xl">
               {/* Patient Info Grid */}
               <div>
                 <h3 className="font-heading font-bold text-dark text-sm mb-3">Patient Information</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                   {[
-                    { label: 'Age', value: patient.age ? `${patient.age} years` : '--', icon: User },
+                    { label: 'Age', value: patient.age ? `${patient.age} years` : '--', icon: Calendar },
                     { label: 'Gender', value: patient.gender || '--', icon: User },
                     { label: 'Phone', value: patient.phone || '--', icon: Phone },
-                    { label: 'Language', value: langLabel, icon: Activity },
-                    { label: 'Blood Group', value: patient.bloodGroup || '--', icon: Heart },
+                    { label: 'Language', value: langLabel, icon: Languages },
+                    { label: 'Blood Group', value: patient.bloodGroup || '--', icon: Droplets },
                   ].map(({ label, value, icon: InfoIcon }) => (
                     <div key={label} className="bg-gray-50/60 rounded-xl px-3.5 py-3 border border-gray-100/60">
                       <div className="flex items-center gap-1.5 mb-1.5">
@@ -174,6 +233,19 @@ export default function PatientView() {
                   ))}
                 </div>
               </div>
+
+              {/* Address */}
+              {(patient.address?.district || patient.address?.state || patient.address?.pin) && (
+                <div>
+                  <h3 className="font-heading font-bold text-dark text-sm mb-3">Address</h3>
+                  <div className="bg-gray-50/60 rounded-xl px-4 py-3 border border-gray-100/60 flex items-start gap-2">
+                    <MapPin size={14} className="text-warm-gray/60 mt-0.5 shrink-0" />
+                    <p className="text-sm font-body text-dark">
+                      {[patient.address?.district, patient.address?.state, patient.address?.pin].filter(Boolean).join(', ') || '--'}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Medical Info */}
               <div>
@@ -197,26 +269,8 @@ export default function PatientView() {
                 </div>
               </div>
 
-              {/* Quick Stats */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-white rounded-xl border border-gray-100 px-4 py-3 text-center">
-                  <p className="font-heading font-bold text-dark text-xl">{consultations.length}</p>
-                  <p className="text-[10px] text-warm-gray font-heading font-medium mt-0.5">Consultations</p>
-                </div>
-                <div className="bg-white rounded-xl border border-gray-100 px-4 py-3 text-center">
-                  <p className="font-heading font-bold text-dark text-xl">{patient.labReports?.length || 0}</p>
-                  <p className="text-[10px] text-warm-gray font-heading font-medium mt-0.5">Lab Reports</p>
-                </div>
-                <div className="bg-white rounded-xl border border-gray-100 px-4 py-3 text-center">
-                  <p className="font-heading font-bold text-dark text-xl">
-                    {patient.createdAt ? new Date(patient.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '--'}
-                  </p>
-                  <p className="text-[10px] text-warm-gray font-heading font-medium mt-0.5">Since</p>
-                </div>
-              </div>
-
               {/* PDF Generation */}
-              <div className="bg-gradient-to-r from-primary-50 to-blue-50/50 rounded-xl border border-primary-100/60 p-4">
+              <div className="bg-gradient-to-r from-primary-50 to-blue-50/50 rounded-xl border border-primary-100/60 p-5">
                 <div className="flex items-start justify-between flex-wrap gap-3">
                   <div>
                     <h4 className="font-heading font-bold text-dark text-sm mb-1">Generate Patient PDF</h4>

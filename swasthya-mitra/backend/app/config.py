@@ -6,13 +6,21 @@ class Settings(BaseSettings):
     # AWS
     aws_region: str = "ap-south-1"
     s3_bucket: str = "swasthyamitra-uploads"
-    dynamodb_table: str = "swasthyamitra-interactions"
+
+    # DynamoDB tables
+    dynamodb_users_table: str = "swasthyamitra-users"
+    dynamodb_interactions_table: str = "swasthyamitra-interactions"
+    dynamodb_entities_table: str = "swasthyamitra-medical-entities"
+
+    # Cognito
+    cognito_user_pool_id: str = ""
+    cognito_app_client_id: str = ""
 
     # Bedrock Model
     bedrock_model_id: str = "amazon.nova-lite-v1:0"
     bedrock_lite_model_id: str = "amazon.nova-lite-v1:0"
 
-    # Sarvam AI
+    # Sarvam AI (fallback for TTS in non-Hindi/English languages)
     sarvam_api_key: str = ""
     sarvam_api_base: str = "https://api.sarvam.ai"
 

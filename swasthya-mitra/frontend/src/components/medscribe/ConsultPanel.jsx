@@ -5,12 +5,13 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useNotifications } from '../../context/NotificationContext';
-import { processMedScribe } from '../../services/api';
+import { processMedScribe, processMedScribeText } from '../../services/api';
 import { saveInteraction, addConsultationToPatient } from '../../services/dataStore';
 import { LANGUAGES } from '../../utils/constants';
 import AudioPlayer from '../AudioPlayer';
 import Disclaimer from '../Disclaimer';
 import LoadingSpinner from '../LoadingSpinner';
+import ThinkingIndicator from '../ThinkingIndicator';
 import recordOrb from '../../../icons/image 96.png';
 
 const LOADING_STEPS = {
@@ -45,80 +46,79 @@ export default function ConsultPanel({ patient, onConsultationComplete }) {
   const [error, setError] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [waveformBars, setWaveformBars] = useState(new Array(24).fill(3));
   const [liveTranscript, setLiveTranscript] = useState('');
 
-  // MediaRecorder refs (actual audio capture)
+  // MediaRecorder refs
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
   const streamRef = useRef(null);
   const timerRef = useRef(null);
 
-  // Web Speech API refs (live preview only)
+  // Audio waveform refs
+  const audioCtxRef = useRef(null);
+  const analyserRef = useRef(null);
+  const animFrameRef = useRef(null);
   const recognitionRef = useRef(null);
-  const isRecordingRef = useRef(false);
+  const liveTranscriptRef = useRef('');
 
   const consultLang = patient?.language || language;
-
-  useEffect(() => { isRecordingRef.current = isRecording; }, [isRecording]);
 
   // Cleanup
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      if (audioCtxRef.current) try { audioCtxRef.current.close(); } catch {}
       if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         try { mediaRecorderRef.current.stop(); } catch {}
       }
-      if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch {} }
+      if (recognitionRef.current) try { recognitionRef.current.stop(); } catch {}
     };
   }, []);
 
-  // Start live speech preview (Web Speech API - display only, not used for backend)
-  const startLivePreview = useCallback(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return; // silently skip if not supported
+  // Waveform animation loop
+  const startWaveformAnimation = useCallback((analyser) => {
+    const update = () => {
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(data);
+      const bars = Array.from(data.slice(0, 24)).map(v => Math.max(3, (v / 255) * 32));
+      setWaveformBars(bars);
+      animFrameRef.current = requestAnimationFrame(update);
+    };
+    update();
+  }, []);
 
-    try {
-      const recognition = new SpeechRecognition();
-      const langConfig = LANGUAGES[consultLang];
-      recognition.lang = langConfig?.speechCode || 'en-IN';
-      recognition.interimResults = true;
-      recognition.continuous = true;
-      recognition.maxAlternatives = 1;
-      recognitionRef.current = recognition;
-
-      let finalTranscript = '';
-      recognition.onresult = (event) => {
-        let interim = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript + ' ';
-          else interim += event.results[i][0].transcript;
-        }
-        setLiveTranscript((finalTranscript + interim).trim());
-      };
-      recognition.onerror = () => {}; // silently ignore - this is just preview
-      recognition.onend = () => {
-        if (isRecordingRef.current) { try { recognition.start(); } catch {} }
-      };
-      recognition.start();
-    } catch {}
-  }, [consultLang]);
-
-  const stopLivePreview = useCallback(() => {
-    if (recognitionRef.current) {
-      try { recognitionRef.current.abort(); } catch {}
-      recognitionRef.current = null;
+  const stopWaveformAnimation = useCallback(() => {
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
+    setWaveformBars(new Array(24).fill(3));
+    if (audioCtxRef.current) {
+      try { audioCtxRef.current.close(); } catch {}
+      audioCtxRef.current = null;
     }
   }, []);
 
   const startRecording = useCallback(async () => {
     try {
       setError(null);
-      setLiveTranscript('');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
-      // Start MediaRecorder for actual audio capture
+      // Setup audio waveform visualizer
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 64;
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+      audioCtxRef.current = audioCtx;
+      analyserRef.current = analyser;
+      startWaveformAnimation(analyser);
+
+      // Start MediaRecorder
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus' : 'audio/webm';
       const mediaRecorder = new MediaRecorder(stream, { mimeType });
@@ -131,7 +131,6 @@ export default function ConsultPanel({ patient, onConsultationComplete }) {
 
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        // Don't stop tracks here - let stopRecording handle cleanup
         if (blob.size > 0) {
           handleProcessAudio(blob);
         } else {
@@ -142,9 +141,35 @@ export default function ConsultPanel({ patient, onConsultationComplete }) {
       mediaRecorder.start(250);
       setIsRecording(true);
       setRecordingTime(0);
+      setLiveTranscript('');
 
-      // Start live preview (Web Speech API for real-time text display)
-      startLivePreview();
+      // Start browser SpeechRecognition for live transcript preview
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const langCode = LANGUAGES[consultLang]?.speechCode || 'en-IN';
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = langCode;
+
+        recognition.onresult = (event) => {
+          let text = '';
+          for (let i = 0; i < event.results.length; i++) {
+            text += event.results[i][0].transcript;
+          }
+          setLiveTranscript(text);
+          liveTranscriptRef.current = text;
+        };
+        recognition.onerror = () => {};
+        recognition.onend = () => {
+          // Restart if still recording (browser may stop after silence)
+          if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            try { recognition.start(); } catch {}
+          }
+        };
+        try { recognition.start(); } catch {}
+        recognitionRef.current = recognition;
+      }
 
       timerRef.current = setInterval(() => {
         setRecordingTime((t) => {
@@ -162,18 +187,20 @@ export default function ConsultPanel({ patient, onConsultationComplete }) {
         setError('Could not access microphone. Please check your device.');
       }
     }
-  }, [startLivePreview]);
+  }, [startWaveformAnimation]);
 
   const stopRecording = useCallback(() => {
-    // Stop live preview
-    stopLivePreview();
+    stopWaveformAnimation();
 
-    // Stop MediaRecorder (triggers onstop → handleProcessAudio)
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch {}
+      recognitionRef.current = null;
+    }
+
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
 
-    // Stop stream tracks
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
@@ -184,7 +211,7 @@ export default function ConsultPanel({ patient, onConsultationComplete }) {
       timerRef.current = null;
     }
     setIsRecording(false);
-  }, [stopLivePreview]);
+  }, [stopWaveformAnimation]);
 
   const handleProcessAudio = async (audioBlob) => {
     setIsLoading(true);
@@ -196,8 +223,34 @@ export default function ConsultPanel({ patient, onConsultationComplete }) {
       setLoadingStep((s) => Math.min(s + 1, 4));
     }, 5000);
 
+    const browserTranscript = liveTranscriptRef.current?.trim() || '';
+
     try {
-      const data = await processMedScribe(audioBlob, consultLang, 'demo-doctor', patient?.id);
+      let data;
+
+      // Strategy: try audio-based first, fall back to text-based with browser transcript
+      try {
+        data = await processMedScribe(audioBlob, consultLang, 'demo-doctor', patient?.id);
+      } catch (audioErr) {
+        const errMsg = audioErr.response?.data?.detail || audioErr.message || '';
+        const is30sError = errMsg.includes('30 seconds') || errMsg.includes('duration greater');
+        console.log('[MedScribe] Audio processing failed:', errMsg);
+
+        // If we have browser transcript, use text-based endpoint (no STT needed)
+        if (browserTranscript) {
+          console.log(`[MedScribe] Falling back to text-based processing (${browserTranscript.length} chars)`);
+          data = await processMedScribeText(browserTranscript, consultLang, 'demo-doctor', patient?.id);
+          // Mark that we used browser transcript
+          if (data && !data.transcription) {
+            data.transcription = browserTranscript;
+          }
+        } else if (is30sError) {
+          throw new Error('Recording too long for audio processing and no live transcript available. Please ensure your browser supports Speech Recognition for the fallback.');
+        } else {
+          throw audioErr;
+        }
+      }
+
       setResult(data);
 
       saveInteraction('medscribe', {
@@ -217,12 +270,11 @@ export default function ConsultPanel({ patient, onConsultationComplete }) {
 
       addNotification('SOAP Notes Generated', 'Consultation documented successfully', 'success', '/medscribe');
     } catch (err) {
-      const detail = err.response?.data?.detail;
+      const detail = err.response?.data?.detail || err.message;
       setError(detail || 'Failed to process consultation. Please try again.');
     } finally {
       clearInterval(stepInterval);
       setIsLoading(false);
-      setLiveTranscript('');
     }
   };
 
@@ -231,6 +283,7 @@ export default function ConsultPanel({ patient, onConsultationComplete }) {
     setError(null);
     setRecordingTime(0);
     setLiveTranscript('');
+    liveTranscriptRef.current = '';
   };
 
   const steps = LOADING_STEPS[language] || LOADING_STEPS.english;
@@ -263,23 +316,52 @@ export default function ConsultPanel({ patient, onConsultationComplete }) {
                   <span className="text-[10px] text-red-400/80 font-body">max 5:00</span>
                 </div>
 
-                {/* Live transcription preview in original language */}
-                {liveTranscript ? (
-                  <div className="mx-auto max-w-lg px-4 py-3 bg-white/90 rounded-xl border border-primary-200/40 shadow-sm">
-                    <div className="flex items-center gap-1.5 mb-1.5">
+                {/* Waveform + Live Transcript */}
+                <div className="w-full max-w-lg mx-auto space-y-3">
+                  {/* Waveform bar */}
+                  <div className="px-4 py-3 bg-white/90 rounded-xl border border-primary-200/40 shadow-sm">
+                    <div className="flex items-center gap-1.5 mb-2">
                       <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 animate-ping" /><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" /></span>
                       <p className="text-[10px] uppercase tracking-widest text-warm-gray/60 font-heading font-semibold">
-                        Live Preview — {LANGUAGES[consultLang]?.labelEn || consultLang}
+                        Capturing — {LANGUAGES[consultLang]?.labelEn || consultLang}
                       </p>
                     </div>
-                    <p className="text-sm text-dark font-body leading-relaxed">{liveTranscript}</p>
+                    <div className="flex items-center justify-center gap-[3px] h-10">
+                      {waveformBars.map((h, i) => (
+                        <div
+                          key={i}
+                          className="w-1.5 rounded-full bg-gradient-to-t from-primary-500 to-primary-400 transition-all duration-75"
+                          style={{ height: `${h}px` }}
+                        />
+                      ))}
+                    </div>
                   </div>
-                ) : (
-                  <p className="text-xs text-warm-gray font-body animate-pulse">Speak now — live preview will appear here...</p>
-                )}
+
+                  {/* Live transcript panel */}
+                  <div className="bg-white/90 rounded-xl border border-gray-200/60 shadow-sm px-4 py-3 min-h-[80px] max-h-[200px] overflow-y-auto">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <FileText size={11} className="text-primary-400" />
+                      <p className="text-[10px] uppercase tracking-widest text-warm-gray/60 font-heading font-semibold">
+                        Live Transcript
+                      </p>
+                      {liveTranscript && (
+                        <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 font-heading font-medium border border-green-100 animate-pulse">
+                          Live
+                        </span>
+                      )}
+                    </div>
+                    {liveTranscript ? (
+                      <p className="font-body text-xs text-dark leading-relaxed whitespace-pre-wrap">{liveTranscript}</p>
+                    ) : (
+                      <p className="font-body text-xs text-warm-gray/40 italic">
+                        Start speaking — text will appear here in real time...
+                      </p>
+                    )}
+                  </div>
+                </div>
 
                 <p className="text-[10px] text-warm-gray/50 font-body">
-                  Audio is being recorded for accurate Sarvam AI transcription
+                  Live preview uses browser STT — also used as fallback if backend audio processing fails
                 </p>
 
                 <button onClick={stopRecording} className="mt-2 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-500 text-white font-heading font-bold text-xs hover:bg-red-600 transition-all">
@@ -305,7 +387,7 @@ export default function ConsultPanel({ patient, onConsultationComplete }) {
                   ))}
                 </div>
                 <p className="text-[10px] text-warm-gray/60 font-body mt-2 max-w-sm">
-                  Speak in your language — live preview shown during recording, accurate transcription by Sarvam AI after stop.
+                  Speak in your language — audio waveform shown during recording, accurate transcription by Sarvam AI after stop.
                 </p>
               </>
             )}

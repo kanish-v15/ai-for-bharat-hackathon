@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Mic, MicOff, Send, CheckCircle, ChevronDown, ChevronUp, Edit3, MessageCircle, Volume2, VolumeX, Square } from 'lucide-react';
+import { Mic, Send, CheckCircle, ChevronDown, ChevronUp, MessageCircle, Volume2, VolumeX, Square, Loader2 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
-import { LANGUAGES } from '../../utils/constants';
+import { useBackendVoice } from '../../hooks/useBackendVoice';
+import WaveformVisualizer from './WaveformVisualizer';
 import recordOrb from '../../../icons/image 96.png';
 import {
   BLOOD_GROUPS, GENDERS, INDIAN_STATES,
@@ -277,160 +278,61 @@ export default function PatientProfileForm({ initialData = {}, onSave, mode = 's
   const [form, setForm] = useState({ ...initialData });
   const [currentQ, setCurrentQ] = useState(0);
   const [messages, setMessages] = useState([]);
-  const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [voiceMode, setVoiceMode] = useState(true);
   const [lastFilledField, setLastFilledField] = useState(null);
-  const [liveTranscript, setLiveTranscript] = useState('');
   const [textInput, setTextInput] = useState('');
   const [showSummary, setShowSummary] = useState(false);
   const [done, setDone] = useState(false);
   const chatEndRef = useRef(null);
-  const recognitionRef = useRef(null);
   const inputRef = useRef(null);
   const initRef = useRef(false);
-  const utteranceRef = useRef(null);
+  const currentQRef = useRef(0);
 
-  const langConfig = LANGUAGES[language];
-  const speechCode = langConfig?.speechCode || 'en-IN';
+  // Backend-powered voice (Polly TTS + Sarvam STT)
+  const {
+    isListening, isSpeaking, isTranscribing, liveTranscript,
+    speak, cancelSpeech, startListening, stopListening, getAnalyser, cleanup,
+  } = useBackendVoice(language);
 
-  /* ── Speech Synthesis (TTS) ── */
-  const cancelSpeech = useCallback(() => {
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
-    setIsSpeaking(false);
-  }, []);
+  // Keep ref in sync for callbacks
+  useEffect(() => { currentQRef.current = currentQ; }, [currentQ]);
 
-  const speakText = useCallback((text, onEnd) => {
-    if (!voiceMode || !window.speechSynthesis) {
-      onEnd?.();
-      return;
-    }
-    cancelSpeech();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = speechCode;
-    utterance.rate = 0.9;
-    utterance.pitch = 1;
-    utteranceRef.current = utterance;
-
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      // Small delay before auto-starting mic
-      if (onEnd) setTimeout(onEnd, 400);
-    };
-    utterance.onerror = () => {
-      setIsSpeaking(false);
-      onEnd?.();
-    };
-
-    window.speechSynthesis.speak(utterance);
-  }, [voiceMode, speechCode, cancelSpeech]);
-
-  /* ── Speech Recognition (STT) ── */
-  const startListening = useCallback(() => {
-    cancelSpeech(); // Stop TTS before starting mic
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      setMessages(prev => [...prev, { role: 'ai', text: 'Voice not supported. Please type your answer.' }]);
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = speechCode;
-    recognition.continuous = false;
-    recognition.interimResults = true;
-
-    recognition.onresult = (event) => {
-      let interim = '';
-      let final = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const t = event.results[i][0].transcript;
-        if (event.results[i].isFinal) final += t;
-        else interim += t;
-      }
-      setLiveTranscript(final || interim);
-      if (final) {
-        setIsListening(false);
-        setLiveTranscript('');
-        handleAnswer(final);
-      }
-    };
-
-    recognition.onerror = () => {
-      setIsListening(false);
-      setLiveTranscript('');
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
-    setIsListening(true);
-    setLiveTranscript('');
-  }, [speechCode, cancelSpeech]);
-
-  const stopListening = () => {
-    recognitionRef.current?.stop();
-    setIsListening(false);
-    if (liveTranscript.trim()) {
-      handleAnswer(liveTranscript);
-      setLiveTranscript('');
-    }
-  };
+  const handleSttError = useCallback((errType) => {
+    const msg = errType === 'mic_denied'
+      ? (language === 'hindi' ? 'माइक्रोफोन की अनुमति दें।' : 'Please allow microphone access.')
+      : (language === 'hindi' ? 'आवाज़ नहीं सुनाई दी। फिर बोलिए।' : "Couldn't hear you. Please try again.");
+    setMessages(prev => [...prev, { role: 'ai', text: msg }]);
+    setTimeout(() => {
+      startListening((transcript) => handleAnswer(transcript), handleSttError);
+    }, 800);
+  }, [language, startListening]);
 
   /* ── Question flow ── */
   const askQuestion = useCallback((idx) => {
     if (idx >= QUESTIONS.length) {
       setDone(true);
       const doneMsg = DONE_MESSAGES[language] || DONE_MESSAGES.english;
-      setMessages(prev => [...prev, { role: 'ai', text: doneMsg, isSpeaking: true }]);
-      speakText(doneMsg);
+      setMessages(prev => [...prev, { role: 'ai', text: doneMsg }]);
+      if (voiceMode) speak(doneMsg);
       return;
     }
     const q = QUESTIONS[idx];
     const text = getQuestionText(q, language);
-    setMessages(prev => [...prev, { role: 'ai', text, field: q.field, isSpeaking: true }]);
+    setMessages(prev => [...prev, { role: 'ai', text, field: q.field }]);
     setCurrentQ(idx);
 
     // Speak the question, then auto-start mic
-    speakText(text, () => {
-      if (voiceMode) startListening();
-    });
-  }, [language, speakText, startListening, voiceMode]);
+    if (voiceMode) {
+      speak(text, () => {
+        startListening((transcript) => handleAnswer(transcript), handleSttError);
+      });
+    }
+  }, [language, voiceMode, speak, startListening, handleSttError]);
 
-  // Start with greeting
-  useEffect(() => {
-    if (initRef.current) return;
-    initRef.current = true;
-    const greeting = GREETINGS[language] || GREETINGS.english;
-    setMessages([{ role: 'ai', text: greeting, isSpeaking: true }]);
-
-    // Speak greeting, then ask first question
-    speakText(greeting, () => {
-      setTimeout(() => askQuestion(0), 300);
-    });
-  }, []);
-
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, liveTranscript]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      cancelSpeech();
-      if (recognitionRef.current) try { recognitionRef.current.abort(); } catch {}
-    };
-  }, [cancelSpeech]);
-
-  const handleAnswer = (answer) => {
-    const q = QUESTIONS[currentQ];
+  // Handle answer (from voice or text)
+  const handleAnswer = useCallback((answer) => {
+    const idx = currentQRef.current;
+    const q = QUESTIONS[idx];
     const trimmed = answer.trim();
 
     // Skip handling
@@ -438,9 +340,13 @@ export default function PatientProfileForm({ initialData = {}, onSave, mode = 's
       if (q.optional) {
         const skipMsg = SKIP_MSG[language] || SKIP_MSG.english;
         setMessages(prev => [...prev, { role: 'user', text: trimmed }, { role: 'ai', text: skipMsg }]);
-        speakText(skipMsg, () => {
-          setTimeout(() => askQuestion(currentQ + 1), 300);
-        });
+        if (voiceMode) {
+          speak(skipMsg, () => {
+            setTimeout(() => askQuestion(idx + 1), 300);
+          });
+        } else {
+          setTimeout(() => askQuestion(idx + 1), 300);
+        }
         return;
       }
     }
@@ -459,9 +365,11 @@ export default function PatientProfileForm({ initialData = {}, onSave, mode = 's
           { role: 'user', text: trimmed },
           { role: 'ai', text: retryMsg }
         ]);
-        speakText(retryMsg, () => {
-          if (voiceMode) startListening();
-        });
+        if (voiceMode) {
+          speak(retryMsg, () => {
+            startListening((t) => handleAnswer(t), handleSttError);
+          });
+        }
         return;
       }
     }
@@ -477,9 +385,11 @@ export default function PatientProfileForm({ initialData = {}, onSave, mode = 's
           { role: 'user', text: trimmed },
           { role: 'ai', text: errorMsg }
         ]);
-        speakText(errorMsg, () => {
-          if (voiceMode) startListening();
-        });
+        if (voiceMode) {
+          speak(errorMsg, () => {
+            startListening((t) => handleAnswer(t), handleSttError);
+          });
+        }
         return;
       }
     }
@@ -498,16 +408,45 @@ export default function PatientProfileForm({ initialData = {}, onSave, mode = 's
 
     setTimeout(() => {
       setMessages(prev => [...prev, { role: 'ai', text: conf }]);
-      speakText(conf, () => {
-        setTimeout(() => askQuestion(currentQ + 1), 300);
-      });
+      if (voiceMode) {
+        speak(conf, () => {
+          setTimeout(() => askQuestion(idx + 1), 300);
+        });
+      } else {
+        setTimeout(() => askQuestion(idx + 1), 300);
+      }
     }, 200);
-  };
+  }, [language, voiceMode, speak, startListening, askQuestion]);
+
+  // Start with greeting
+  useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
+    const greeting = GREETINGS[language] || GREETINGS.english;
+    setMessages([{ role: 'ai', text: greeting }]);
+
+    if (voiceMode) {
+      speak(greeting, () => {
+        setTimeout(() => askQuestion(0), 300);
+      });
+    } else {
+      setTimeout(() => askQuestion(0), 300);
+    }
+  }, []);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isListening, isTranscribing]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => cleanup();
+  }, [cleanup]);
 
   const handleTextSubmit = (e) => {
     e?.preventDefault();
     if (!textInput.trim()) return;
-    cancelSpeech(); // Stop any TTS
+    cancelSpeech();
     handleAnswer(textInput);
     setTextInput('');
   };
@@ -530,6 +469,8 @@ export default function PatientProfileForm({ initialData = {}, onSave, mode = 's
     const v = getVal(form, q.field);
     return v && (typeof v !== 'string' || v.trim());
   }).length;
+
+  const analyser = getAnalyser();
 
   return (
     <div className="flex flex-col h-[calc(100vh-200px)] max-h-[700px]">
@@ -622,25 +563,25 @@ export default function PatientProfileForm({ initialData = {}, onSave, mode = 's
           );
         })}
 
-        {/* Live transcript */}
-        {isListening && liveTranscript && (
+        {/* Waveform visualizer during recording */}
+        {isListening && (
           <div className="flex justify-end animate-fade-in">
-            <div className="max-w-[80%] rounded-2xl px-4 py-2.5 bg-primary-100 text-primary-700 rounded-br-md border border-primary-200">
-              <p className="text-sm font-body italic">{liveTranscript}...</p>
+            <div className="rounded-2xl px-4 py-3 bg-red-50 border border-red-200 rounded-br-md">
+              <WaveformVisualizer analyser={analyser} barCount={20} />
+              <p className="text-[10px] text-red-500 font-heading font-semibold text-center mt-1">
+                {language === 'hindi' ? 'सुन रहा हूँ...' : language === 'tamil' ? 'கேட்கிறேன்...' : 'Listening...'}
+              </p>
             </div>
           </div>
         )}
 
-        {/* Listening indicator */}
-        {isListening && !liveTranscript && (
+        {/* Transcribing indicator */}
+        {isTranscribing && (
           <div className="flex justify-end animate-fade-in">
-            <div className="rounded-2xl px-4 py-2.5 bg-red-50 border border-red-200 text-red-600 rounded-br-md">
-              <p className="text-sm font-body flex items-center gap-2">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping" />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
-                </span>
-                {language === 'hindi' ? 'सुन रहा हूँ...' : language === 'tamil' ? 'கேட்கிறேன்...' : 'Listening...'}
+            <div className="rounded-2xl px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-br-md">
+              <p className="text-sm font-body flex items-center gap-2 text-amber-600">
+                <Loader2 size={14} className="animate-spin" />
+                {language === 'hindi' ? 'समझ रहा हूँ...' : 'Transcribing...'}
               </p>
             </div>
           </div>
@@ -655,15 +596,16 @@ export default function PatientProfileForm({ initialData = {}, onSave, mode = 's
           {/* Mic button */}
           <button
             onClick={() => {
-              if (isListening) stopListening();
-              else {
+              if (isListening) {
+                stopListening();
+              } else {
                 cancelSpeech();
-                startListening();
+                startListening((transcript) => handleAnswer(transcript), handleSttError);
               }
             }}
-            disabled={isSpeaking}
+            disabled={isSpeaking || isTranscribing}
             className={`relative w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-all overflow-hidden ${
-              isListening ? 'scale-110' : isSpeaking ? 'opacity-40 cursor-not-allowed' : 'hover:scale-105'
+              isListening ? 'scale-110' : (isSpeaking || isTranscribing) ? 'opacity-40 cursor-not-allowed' : 'hover:scale-105'
             }`}
           >
             <img src={recordOrb} alt="" className={`absolute inset-0 w-full h-full object-cover rounded-full ${isListening ? 'animate-pulse' : ''}`} />

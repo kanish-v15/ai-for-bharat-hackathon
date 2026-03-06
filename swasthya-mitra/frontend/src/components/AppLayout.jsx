@@ -14,7 +14,6 @@ const PAGE_TITLES = {
   '/care-guide': 'Care Guide',
   '/medscribe': 'MedScribe',
   '/medscribe/patient': 'Patient Record',
-  '/settings': 'Settings',
   '/health-timeline': 'Health Timeline',
   '/profile-setup': 'Profile Setup',
   '/profile': 'My Profile',
@@ -57,7 +56,7 @@ export default function AppLayout() {
   const PAGE_TITLE_KEYS = {
     '/patient': 'common.dashboard', '/doctor': 'common.dashboard',
     '/lab-samjho': 'common.labSamjho', '/care-guide': 'common.careGuide',
-    '/medscribe': 'common.medscribe', '/settings': 'common.settings',
+    '/medscribe': 'common.medscribe',
     '/health-timeline': 'common.healthTimeline',
     '/profile-setup': 'profile.setupTitle', '/profile': 'profile.title',
   };

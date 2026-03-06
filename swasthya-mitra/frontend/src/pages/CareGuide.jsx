@@ -5,11 +5,13 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useNotifications } from '../context/NotificationContext';
-import { askCareGuideText } from '../services/api';
+import { askCareGuide, askCareGuideText } from '../services/api';
 import { saveInteraction, getInteractions, getLastLabReport, deleteInteraction } from '../services/dataStore';
 import { LANGUAGES } from '../utils/constants';
 import AudioPlayer from '../components/AudioPlayer';
 import Disclaimer from '../components/Disclaimer';
+import ThinkingIndicator from '../components/ThinkingIndicator';
+import RunningRobot from '../components/RunningRobot';
 import recordOrb from '../../icons/image 96.png';
 
 export default function CareGuide() {
@@ -21,14 +23,24 @@ export default function CareGuide() {
   const [sessionId, setSessionId] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordDuration, setRecordDuration] = useState(0);
-  const [liveTranscript, setLiveTranscript] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
   const [showDocs, setShowDocs] = useState(false);
   const [docTab, setDocTab] = useState('reports');
   const [docsVersion, setDocsVersion] = useState(0);
-  const recognitionRef = useRef(null);
+  const [waveformBars, setWaveformBars] = useState(new Array(20).fill(3));
+
+  const [liveTranscript, setLiveTranscript] = useState('');
+
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
+  const streamRef = useRef(null);
   const timerRef = useRef(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const analyserRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const animFrameRef = useRef(null);
+  const recognitionRef = useRef(null);
 
   const langConfig = LANGUAGES[language];
 
@@ -41,10 +53,28 @@ export default function CareGuide() {
     setDocsVersion(v => v + 1);
   };
 
+  // Clear chat when language changes
+  useEffect(() => {
+    setMessages([]);
+    setSessionId(null);
+  }, [language]);
+
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      if (recognitionRef.current) try { recognitionRef.current.abort(); } catch {}
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      if (audioContextRef.current) {
+        try { audioContextRef.current.close(); } catch {}
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        try { mediaRecorderRef.current.stop(); } catch {}
+      }
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch {}
+      }
     };
   }, []);
 
@@ -67,76 +97,167 @@ export default function CareGuide() {
     scrollToBottom();
   };
 
-  /* Voice input using Web Speech API */
-  const startRecording = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert('Speech recognition is not supported in this browser. Please use Chrome.');
-      return;
-    }
+  /* Voice input using MediaRecorder + backend Sarvam STT */
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
 
-    const recognition = new SpeechRecognition();
-    recognition.lang = langConfig?.speechCode || 'en-IN';
-    recognition.interimResults = true;
-    recognition.continuous = true;
-    recognition.maxAlternatives = 1;
-    recognitionRef.current = recognition;
+      // Set up Web Audio API for waveform visualization
+      const audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 64;
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+      analyserRef.current = analyser;
+      audioContextRef.current = audioContext;
 
-    let finalTranscript = '';
+      // Start waveform animation
+      const updateWaveform = () => {
+        if (!analyserRef.current) return;
+        const data = new Uint8Array(analyserRef.current.frequencyBinCount);
+        analyserRef.current.getByteFrequencyData(data);
+        const bars = Array.from(data.slice(0, 20)).map(v => Math.max(3, (v / 255) * 28));
+        setWaveformBars(bars);
+        animFrameRef.current = requestAnimationFrame(updateWaveform);
+      };
+      updateWaveform();
 
-    recognition.onresult = (event) => {
-      let interim = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript + ' ';
-        } else {
-          interim += event.results[i][0].transcript;
-        }
-      }
-      setLiveTranscript((finalTranscript + interim).trim());
-    };
-
-    recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
-      if (event.error === 'not-allowed') {
-        alert('Please allow microphone access to use voice input.');
-      }
-      setIsRecording(false);
-      setLiveTranscript('');
-      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-    };
-
-    recognition.onend = () => {
-      if (finalTranscript.trim() && isRecording) {
-        submitQuestion(finalTranscript.trim(), true);
-      }
-      setIsRecording(false);
-      setLiveTranscript('');
-      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-    };
-
-    recognition.start();
-    setIsRecording(true);
-    setLiveTranscript('');
-    setRecordDuration(0);
-    timerRef.current = setInterval(() => {
-      setRecordDuration((d) => {
-        if (d + 1 >= 60) { stopRecording(); return 60; }
-        return d + 1;
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : 'audio/webm',
       });
-    }, 1000);
+
+      chunksRef.current = [];
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        // Clean up audio context and animation
+        if (animFrameRef.current) {
+          cancelAnimationFrame(animFrameRef.current);
+          animFrameRef.current = null;
+        }
+        if (audioContextRef.current) {
+          try { audioContextRef.current.close(); } catch {}
+          audioContextRef.current = null;
+        }
+        analyserRef.current = null;
+        setWaveformBars(new Array(20).fill(3));
+
+        // Stop all tracks
+        stream.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        if (blob.size === 0) return;
+
+        // Send audio to backend for STT + AI response
+        setIsProcessing(true);
+        setMessages((prev) => [...prev, {
+          role: 'user',
+          text: '...',
+          isVoice: true,
+          isPending: true,
+          timestamp: new Date(),
+        }]);
+        scrollToBottom();
+
+        try {
+          const data = await askCareGuide(blob, language, 'demo-user', sessionId);
+
+          // Update the pending user message with the transcribed question
+          setMessages((prev) => {
+            const updated = [...prev];
+            const pendingIdx = updated.findLastIndex(m => m.isPending);
+            if (pendingIdx !== -1) {
+              updated[pendingIdx] = {
+                ...updated[pendingIdx],
+                text: data.transcription || data.question_text || '(voice question)',
+                isPending: false,
+              };
+            }
+            return updated;
+          });
+
+          handleResponse(data);
+        } catch (err) {
+          // Remove the pending message on error
+          setMessages((prev) => {
+            const updated = [...prev];
+            const pendingIdx = updated.findLastIndex(m => m.isPending);
+            if (pendingIdx !== -1) {
+              updated.splice(pendingIdx, 1);
+            }
+            return [...updated, {
+              role: 'assistant',
+              text: err.response?.data?.detail || t('common.error'),
+              isError: true,
+              timestamp: new Date(),
+            }];
+          });
+          scrollToBottom();
+        } finally {
+          setIsProcessing(false);
+        }
+      };
+
+      mediaRecorder.start(100);
+      setIsRecording(true);
+      setRecordDuration(0);
+      setLiveTranscript('');
+
+      // Start Web Speech API for live transcript preview
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = langConfig?.speechCode || 'en-IN';
+        recognition.onresult = (event) => {
+          let interim = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            interim += event.results[i][0].transcript;
+          }
+          setLiveTranscript(interim);
+        };
+        recognition.onerror = () => {}; // Silently ignore — MediaRecorder is primary
+        recognition.onend = () => {
+          // Restart if still recording (browser may stop after silence)
+          if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            try { recognition.start(); } catch {}
+          }
+        };
+        try { recognition.start(); } catch {}
+        recognitionRef.current = recognition;
+      }
+
+      timerRef.current = setInterval(() => {
+        setRecordDuration((d) => {
+          if (d + 1 >= 120) { stopRecording(); return 120; }
+          return d + 1;
+        });
+      }, 1000);
+    } catch (err) {
+      console.error('Microphone access denied:', err);
+      alert('Please allow microphone access to use voice input.');
+    }
   };
 
   const stopRecording = () => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch {}
+      recognitionRef.current = null;
     }
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-    if (liveTranscript.trim()) {
-      submitQuestion(liveTranscript.trim(), true);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
     }
     setIsRecording(false);
-    setLiveTranscript('');
   };
 
   const submitQuestion = async (question, isVoice = false) => {
@@ -211,9 +332,11 @@ export default function CareGuide() {
 
   const welcomeText = `${t('careGuide.welcome')}. ${t('careGuide.welcomeDesc')}`;
 
+  const isBusy = isLoading || isProcessing;
+
   return (
     <div className="h-[calc(100vh-130px)] flex overflow-hidden rounded-3xl bg-gray-50 gap-3">
-      {/* ── Main Chat Area (LEFT) ── */}
+      {/* -- Main Chat Area (LEFT) -- */}
       <div className="flex-1 flex flex-col overflow-hidden border border-gray-200 rounded-2xl bg-white shadow-sm">
         {/* Header */}
         <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between shrink-0">
@@ -318,10 +441,14 @@ export default function CareGuide() {
                           : 'bg-white text-dark rounded-2xl rounded-tl-md border border-gray-100'
                     }`}
                   >
-                    <p className="text-sm font-body leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    {msg.isPending ? (
+                      <ThinkingIndicator variant="user" label={t('careGuide.processing')} />
+                    ) : (
+                      <p className="text-sm font-body leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                    )}
 
                     {/* Voice indicator */}
-                    {isUser && msg.isVoice && (
+                    {isUser && msg.isVoice && !msg.isPending && (
                       <div className="flex items-center gap-1 mt-1.5 opacity-70">
                         <Mic size={11} />
                         <span className="text-[10px]">{t('common.voice')}</span>
@@ -346,30 +473,24 @@ export default function CareGuide() {
           })}
 
           {/* Loading indicator */}
-          {isLoading && (
-            <div className="flex justify-start animate-fade-in">
-              <div className="max-w-[80%] sm:max-w-[70%]">
-                <div className="bg-white rounded-2xl rounded-tl-md px-4 py-3 shadow-sm border border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <span className="flex gap-1">
-                      <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </span>
-                    <span className="text-xs text-gray-400 font-body">{t('careGuide.thinking')}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+          {(isLoading || isProcessing) && !messages.some(m => m.isPending) && (
+            <ThinkingIndicator variant="assistant" label={isProcessing ? t('careGuide.processing') : t('careGuide.aiThinking')} />
           )}
 
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Running robot when AI is processing */}
+        {(isLoading || isProcessing) && (
+          <div className="px-4">
+            <RunningRobot />
+          </div>
+        )}
+
         {/* Disclaimer */}
         <div className="px-4 pb-1"><Disclaimer /></div>
 
-        {/* Recording indicator */}
+        {/* Recording indicator with waveform */}
         {isRecording && (
           <div className="px-4 pb-2 animate-fade-in">
             <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
@@ -377,19 +498,43 @@ export default function CareGuide() {
                 <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping" />
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
               </span>
-              <span className="text-xs text-red-600 font-heading font-semibold flex-1">
-                {t('careGuide.recording')} {formatTime(recordDuration)} / 1:00
+              <span className="text-xs text-red-600 font-heading font-semibold shrink-0">
+                {formatTime(recordDuration)} / 2:00
               </span>
-              {liveTranscript && (
-                <span className="text-xs text-dark font-body italic truncate max-w-[50%]">{liveTranscript}</span>
+              {/* Live transcript or waveform */}
+              {liveTranscript ? (
+                <p className="flex-1 text-xs text-red-600/80 font-body truncate italic">
+                  {liveTranscript}
+                </p>
+              ) : (
+                <div className="flex items-center gap-[2px] flex-1 h-7 justify-center">
+                  {waveformBars.map((height, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-red-400 rounded-full transition-all duration-75"
+                      style={{
+                        width: '3px',
+                        height: `${height}px`,
+                        minHeight: '3px',
+                      }}
+                    />
+                  ))}
+                </div>
               )}
               <button
                 onClick={stopRecording}
-                className="text-xs bg-red-500 text-white px-3 py-1 rounded-lg font-heading font-semibold hover:bg-red-600 transition-colors"
+                className="text-xs bg-red-500 text-white px-3 py-1 rounded-lg font-heading font-semibold hover:bg-red-600 transition-colors shrink-0"
               >
                 {t('common.send')}
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Processing indicator (after recording stops) */}
+        {isProcessing && !isRecording && (
+          <div className="px-4 pb-2 animate-fade-in">
+            <ThinkingIndicator variant="bar" label={t('careGuide.processing')} />
           </div>
         )}
 
@@ -403,7 +548,7 @@ export default function CareGuide() {
                 if (isRecording) stopRecording();
                 else startRecording();
               }}
-              disabled={isLoading}
+              disabled={isBusy}
               className={`relative w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all duration-200 overflow-hidden disabled:opacity-40 ${
                 isRecording ? 'scale-110' : 'hover:scale-105'
               }`}
@@ -420,10 +565,10 @@ export default function CareGuide() {
               <input
                 ref={inputRef}
                 type="text"
-                value={isRecording ? liveTranscript : textInput}
-                onChange={(e) => !isRecording && setTextInput(e.target.value)}
-                placeholder={isRecording ? t('careGuide.recording') : t('careGuide.askPlaceholder')}
-                disabled={isLoading || isRecording}
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                placeholder={isRecording ? (t('careGuide.recording') || 'Recording...') : (t('careGuide.askPlaceholder') || 'Type your question...')}
+                disabled={isBusy || isRecording}
                 className="w-full px-4 py-2.5 rounded-2xl bg-gray-100 border border-gray-200 font-body text-sm text-dark focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-300 focus:bg-white disabled:opacity-50 placeholder:text-gray-400 transition-all"
               />
             </div>
@@ -431,7 +576,7 @@ export default function CareGuide() {
             {/* Send button */}
             <button
               type="submit"
-              disabled={(!textInput.trim() && !isRecording) || isLoading}
+              disabled={!textInput.trim() || isBusy}
               className="w-10 h-10 bg-primary-500 text-white rounded-full flex items-center justify-center shrink-0 hover:bg-primary-600 disabled:opacity-30 disabled:hover:bg-primary-500 transition-all duration-200 active:scale-95 shadow-md"
             >
               <Send size={16} />
@@ -440,7 +585,7 @@ export default function CareGuide() {
         </div>
       </div>
 
-      {/* ── Document Panel (RIGHT, sticky) ── */}
+      {/* -- Document Panel (RIGHT, sticky) -- */}
       {/* Mobile overlay */}
       {showDocs && (
         <div className="lg:hidden fixed inset-0 bg-black/30 z-40" onClick={() => setShowDocs(false)} />

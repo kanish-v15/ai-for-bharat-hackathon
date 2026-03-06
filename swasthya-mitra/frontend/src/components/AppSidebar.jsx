@@ -1,5 +1,5 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Heart, LayoutDashboard, FileText, Mic, Clock, Settings,
+import { Heart, LayoutDashboard, FileText, Mic, Clock,
          Stethoscope, Languages, HelpCircle, LogOut, X, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -10,7 +10,6 @@ const PATIENT_NAV = [
   { to: '/care-guide', icon: Mic, labelKey: 'common.careGuide', fallback: 'Care Guide' },
   { to: '/health-timeline', icon: Clock, labelKey: 'common.healthTimeline', fallback: 'Health Timeline' },
   { to: '/profile', icon: User, labelKey: 'common.profile', fallback: 'Profile' },
-  { to: '/settings', icon: Settings, labelKey: 'common.settings', fallback: 'Settings' },
 ];
 
 const DOCTOR_NAV = [
@@ -19,7 +18,6 @@ const DOCTOR_NAV = [
   { to: '/lab-samjho', icon: FileText, labelKey: 'common.labSamjho', fallback: 'Lab Samjho' },
   { to: '/care-guide', icon: Languages, labelKey: 'common.careGuide', fallback: 'Care Guide' },
   { to: '/profile', icon: User, labelKey: 'common.profile', fallback: 'Profile' },
-  { to: '/settings', icon: Settings, labelKey: 'common.settings', fallback: 'Settings' },
 ];
 
 export default function AppSidebar({ open, onClose }) {

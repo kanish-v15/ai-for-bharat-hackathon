@@ -1,9 +1,13 @@
+import asyncio
 import json
 import uuid
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from app.models.schemas import MedScribeTextRequest
 from app.services.bedrock_service import invoke_model
-from app.services.sarvam_service import speech_to_text, text_to_speech, translate_text
+from app.services.transcribe_service import speech_to_text, speech_to_text_medical
+from app.services.translate_service import translate_text
+from app.services.polly_service import text_to_speech_smart
+from app.services.comprehend_medical_service import extract_medications as cm_extract_meds, extract_conditions as cm_extract_conditions
 from app.services.s3_service import upload_audio_and_get_url
 from app.prompts.soap_notes import MEDSCRIBE_SYSTEM, MEDSCRIBE_PROMPT
 
@@ -22,9 +26,12 @@ async def process_consultation(
     if len(audio_bytes) > 25 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="Audio file too large. Maximum 25MB.")
 
-    # Step 1: Transcribe audio
+    # Step 1: Transcribe audio (Amazon Transcribe Medical for English, standard for others)
     try:
-        transcription = await speech_to_text(audio_bytes, language)
+        if language == "english":
+            transcription = await speech_to_text_medical(audio_bytes)
+        else:
+            transcription = await speech_to_text(audio_bytes, language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Could not transcribe audio: {str(e)}")
 
@@ -55,7 +62,20 @@ async def process_consultation(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
 
-    # Step 4: Translate patient instructions if not English
+    # Step 4: Extract medical entities with Comprehend Medical
+    medical_entities = {"medications": [], "conditions": []}
+    try:
+        cm_meds, cm_conds = await asyncio.gather(
+            cm_extract_meds(transcription_en),
+            cm_extract_conditions(transcription_en),
+        )
+        medical_entities["medications"] = cm_meds
+        medical_entities["conditions"] = cm_conds
+        print(f"[MEDSCRIBE] Comprehend Medical: {len(cm_meds)} meds, {len(cm_conds)} conditions")
+    except Exception as e:
+        print(f"[MEDSCRIBE] Comprehend Medical error (non-fatal): {e}")
+
+    # Step 5: Translate patient instructions if not English
     patient_instructions = result.get("patient_instructions", "")
     patient_instructions_translated = None
     if language != "english" and patient_instructions:
@@ -66,12 +86,12 @@ async def process_consultation(
         except Exception:
             patient_instructions_translated = patient_instructions
 
-    # Step 5: Generate audio for patient instructions
+    # Step 6: Generate audio for patient instructions
     patient_audio_url = None
     try:
         audio_text = patient_instructions_translated or patient_instructions
         if audio_text:
-            audio_bytes_out = await text_to_speech(audio_text, language)
+            audio_bytes_out, _ = await text_to_speech_smart(audio_text, language)
             if audio_bytes_out:
                 patient_audio_url = upload_audio_and_get_url(audio_bytes_out, "medscribe-audio")
     except Exception:
@@ -83,6 +103,7 @@ async def process_consultation(
         "transcription": transcription,
         "soap_note": result.get("soap_note", {}),
         "medications": result.get("medications", []),
+        "medical_entities": medical_entities,
         "patient_instructions": patient_instructions,
         "patient_instructions_translated": patient_instructions_translated,
         "patient_audio_url": patient_audio_url,
@@ -117,6 +138,18 @@ async def _process_transcription(transcription: str, language: str) -> dict:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
 
+    # Extract medical entities with Comprehend Medical
+    medical_entities = {"medications": [], "conditions": []}
+    try:
+        cm_meds, cm_conds = await asyncio.gather(
+            cm_extract_meds(transcription_en),
+            cm_extract_conditions(transcription_en),
+        )
+        medical_entities["medications"] = cm_meds
+        medical_entities["conditions"] = cm_conds
+    except Exception:
+        pass
+
     # Translate patient instructions if not English
     patient_instructions = result.get("patient_instructions", "")
     patient_instructions_translated = None
@@ -133,7 +166,7 @@ async def _process_transcription(transcription: str, language: str) -> dict:
     try:
         audio_text = patient_instructions_translated or patient_instructions
         if audio_text:
-            audio_bytes_out = await text_to_speech(audio_text, language)
+            audio_bytes_out, _ = await text_to_speech_smart(audio_text, language)
             if audio_bytes_out:
                 patient_audio_url = upload_audio_and_get_url(audio_bytes_out, "medscribe-audio")
     except Exception:
@@ -145,6 +178,7 @@ async def _process_transcription(transcription: str, language: str) -> dict:
         "transcription": transcription,
         "soap_note": result.get("soap_note", {}),
         "medications": result.get("medications", []),
+        "medical_entities": medical_entities,
         "patient_instructions": patient_instructions,
         "patient_instructions_translated": patient_instructions_translated,
         "patient_audio_url": patient_audio_url,

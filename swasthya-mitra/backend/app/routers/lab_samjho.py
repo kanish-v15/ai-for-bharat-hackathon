@@ -3,7 +3,9 @@ import uuid
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from app.services.bedrock_service import invoke_model, invoke_model_with_image
 from app.services.textract_service import extract_text_from_image
-from app.services.sarvam_service import translate_text, text_to_speech
+from app.services.translate_service import translate_text
+from app.services.polly_service import text_to_speech_smart
+from app.services.comprehend_medical_service import detect_entities as cm_detect_entities
 from app.services.s3_service import upload_file, upload_audio_and_get_url
 from app.models.schemas import LabQuestionRequest
 from app.prompts.lab_analysis import LAB_ANALYSIS_SYSTEM, LAB_ANALYSIS_PROMPT, LAB_QA_SYSTEM, LAB_QA_PROMPT
@@ -56,7 +58,15 @@ async def analyze_lab_report(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
-    # Step 3: Translate explanations if not English
+    # Step 3: Extract medical entities from OCR text using Comprehend Medical
+    medical_entities = []
+    try:
+        medical_entities = await cm_detect_entities(extracted_text)
+        print(f"[LAB_SAMJHO] Comprehend Medical: {len(medical_entities)} entities found")
+    except Exception as e:
+        print(f"[LAB_SAMJHO] Comprehend Medical error (non-fatal): {e}")
+
+    # Step 4: Translate explanations if not English
     if language != "english":
         for param in result.get("parameters", []):
             try:
@@ -71,12 +81,12 @@ async def analyze_lab_report(
         except Exception:
             pass
 
-    # Step 4: Generate audio summary
+    # Step 5: Generate audio summary
     audio_url = None
     try:
         summary_text = result.get("summary", "")
         if summary_text:
-            audio_bytes = await text_to_speech(summary_text, language)
+            audio_bytes, _ = await text_to_speech_smart(summary_text, language)
             if audio_bytes:
                 audio_url = upload_audio_and_get_url(audio_bytes, "lab-audio")
                 print(f"[LAB_SAMJHO] Audio generated: {audio_url[:80]}...")
@@ -90,6 +100,7 @@ async def analyze_lab_report(
     return {
         "parameters": result.get("parameters", []),
         "summary": result.get("summary", ""),
+        "medical_entities": medical_entities,
         "audio_url": audio_url,
         "interaction_id": interaction_id,
     }
@@ -131,7 +142,7 @@ async def ask_about_report(request: LabQuestionRequest):
     audio_url = None
     try:
         audio_text = answer_translated or answer
-        audio_bytes = await text_to_speech(audio_text, request.language)
+        audio_bytes, _ = await text_to_speech_smart(audio_text, request.language)
         if audio_bytes:
             audio_url = upload_audio_and_get_url(audio_bytes, "lab-qa-audio")
     except Exception:

@@ -254,7 +254,7 @@ export default function LabSamjho() {
     };
     recognition.start();
     setIsRecording(true); setLiveTranscript(''); setRecordDuration(0);
-    timerRef.current = setInterval(() => { setRecordDuration(d => { if (d + 1 >= 60) { stopRecording(); return 60; } return d + 1; }); }, 1000);
+    timerRef.current = setInterval(() => { setRecordDuration(d => { if (d + 1 >= 120) { stopRecording(); return 120; } return d + 1; }); }, 1000);
   };
 
   const stopRecording = () => {

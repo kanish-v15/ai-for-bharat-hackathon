@@ -3,7 +3,9 @@ import uuid
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from app.models.schemas import CareGuideTextRequest
 from app.services.bedrock_service import invoke_model
-from app.services.sarvam_service import speech_to_text, text_to_speech, translate_text
+from app.services.transcribe_service import speech_to_text
+from app.services.translate_service import translate_text
+from app.services.polly_service import text_to_speech_smart
 from app.services.s3_service import upload_audio_and_get_url
 from app.prompts.medical_qa import CARE_GUIDE_SYSTEM, CARE_GUIDE_PROMPT, EMERGENCY_KEYWORDS
 
@@ -77,7 +79,7 @@ async def process_question(question: str, language: str, session_id: str | None)
     audio_url = None
     try:
         audio_text = answer_translated or answer
-        audio_bytes = await text_to_speech(audio_text, language)
+        audio_bytes, _ = await text_to_speech_smart(audio_text, language)
         if audio_bytes:
             audio_url = upload_audio_and_get_url(audio_bytes, "care-audio")
             print(f"[CARE_GUIDE] Audio generated: {audio_url[:80]}...")
@@ -104,7 +106,7 @@ async def ask_voice(
     audio: UploadFile = File(...),
     language: str = Form("hindi"),
     user_id: str = Form("demo-user"),
-    session_id: str = Form(None),
+    session_id: str | None = Form(None),
 ):
     audio_bytes = await audio.read()
 

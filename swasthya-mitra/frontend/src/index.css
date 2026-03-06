@@ -101,9 +101,39 @@
   50% { opacity: 0.8; }
 }
 
+@keyframes dotPulse {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.7); }
+  40% { opacity: 1; transform: scale(1.15); }
+}
+
+@keyframes shimmerSweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+@keyframes sparkleRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 @keyframes orbit {
   from { transform: rotate(0deg) translateX(40px) rotate(0deg); }
   to { transform: rotate(360deg) translateX(40px) rotate(-360deg); }
+}
+
+@keyframes robotRun {
+  0% { left: -40px; }
+  100% { left: 100%; }
+}
+
+@keyframes legRun {
+  0% { transform: rotate(-25deg); }
+  100% { transform: rotate(25deg); }
+}
+
+@keyframes armRun {
+  0% { transform: rotate(30deg); }
+  100% { transform: rotate(-30deg); }
 }
 
 /* ── Base ── */

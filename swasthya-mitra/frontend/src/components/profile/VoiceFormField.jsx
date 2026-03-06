@@ -1,13 +1,8 @@
 import { useState, useRef } from 'react';
-import { Mic, MicOff, CheckCircle, Square } from 'lucide-react';
+import { Mic, Square, CheckCircle, Loader2 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { transcribeAudio } from '../../services/api';
 import recordOrb from '../../../icons/image 96.png';
-
-const SPEECH_LANG_CODES = {
-  hindi: 'hi-IN', tamil: 'ta-IN', english: 'en-IN',
-  telugu: 'te-IN', kannada: 'kn-IN', malayalam: 'ml-IN',
-  bengali: 'bn-IN', marathi: 'mr-IN', gujarati: 'gu-IN',
-};
 
 export default function VoiceFormField({
   label, name, value, onChange, type = 'text', options = [],
@@ -16,74 +11,79 @@ export default function VoiceFormField({
 }) {
   const { language } = useLanguage();
   const [isRecording, setIsRecording] = useState(false);
-  const [liveText, setLiveText] = useState('');
-  const recognitionRef = useRef(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
+  const streamRef = useRef(null);
   const timerRef = useRef(null);
 
-  const startRecording = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert('Speech recognition is not supported in this browser. Please use Chrome.');
-      return;
-    }
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
 
-    const recognition = new SpeechRecognition();
-    recognition.lang = SPEECH_LANG_CODES[language] || 'en-IN';
-    recognition.interimResults = true;
-    recognition.continuous = false;
-    recognition.maxAlternatives = 1;
-    recognitionRef.current = recognition;
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : 'audio/webm',
+      });
 
-    let finalTranscript = '';
+      chunksRef.current = [];
+      mediaRecorderRef.current = mediaRecorder;
 
-    recognition.onresult = (event) => {
-      let interim = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript + ' ';
-        } else {
-          interim += event.results[i][0].transcript;
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        // Stop all tracks
+        stream.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        if (blob.size === 0) return;
+
+        // Send to backend for transcription
+        setIsTranscribing(true);
+        try {
+          const transcript = await transcribeAudio(blob, language);
+          if (transcript && transcript.trim()) {
+            onChange(name, transcript.trim());
+          }
+        } catch (err) {
+          console.error('Transcription failed:', err);
+        } finally {
+          setIsTranscribing(false);
         }
-      }
-      setLiveText((finalTranscript + interim).trim());
-    };
+      };
 
-    recognition.onerror = () => {
-      setIsRecording(false);
-      setLiveText('');
-      if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
-    };
+      mediaRecorder.start(100);
+      setIsRecording(true);
 
-    recognition.onend = () => {
-      const result = finalTranscript.trim();
-      if (result) onChange(name, result);
-      setIsRecording(false);
-      setLiveText('');
-      if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
-    };
-
-    recognition.start();
-    setIsRecording(true);
-    setLiveText('');
-
-    // Auto-stop after 8 seconds for form fields
-    timerRef.current = setTimeout(() => {
-      if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch {}
-      }
-    }, 8000);
+      // Auto-stop after 8 seconds for form fields
+      timerRef.current = setTimeout(() => {
+        stopRecording();
+      }, 8000);
+    } catch (err) {
+      console.error('Microphone access denied:', err);
+      alert('Please allow microphone access to use voice input.');
+    }
   };
 
   const stopRecording = () => {
-    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
-    if (recognitionRef.current) {
-      try { recognitionRef.current.stop(); } catch {}
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
   };
 
   const handleMicClick = () => {
     if (isRecording) stopRecording();
-    else startRecording();
+    else if (!isTranscribing) startRecording();
   };
 
   const isFilled = value && (typeof value !== 'string' || value.trim());
@@ -125,9 +125,9 @@ export default function VoiceFormField({
     return (
       <input
         type={type}
-        value={isRecording && liveText ? liveText : value}
+        value={value}
         onChange={(e) => onChange(name, e.target.value)}
-        placeholder={isRecording ? 'Listening...' : placeholder}
+        placeholder={isRecording ? 'Recording...' : isTranscribing ? 'Transcribing...' : placeholder}
         disabled={disabled || readOnly}
         className={baseClass}
       />
@@ -146,7 +146,7 @@ export default function VoiceFormField({
       {/* Input + Mic */}
       <div className={`
         flex items-center border-2 rounded-xl overflow-hidden transition-all duration-200
-        ${error ? 'border-red-300 bg-red-50/30' : isRecording ? 'border-primary-400 bg-primary-50/30 ring-2 ring-primary-200' : 'border-gray-200 hover:border-gray-300 focus-within:border-primary-500'}
+        ${error ? 'border-red-300 bg-red-50/30' : isRecording ? 'border-primary-400 bg-primary-50/30 ring-2 ring-primary-200' : isTranscribing ? 'border-amber-300 bg-amber-50/30 ring-2 ring-amber-200' : 'border-gray-200 hover:border-gray-300 focus-within:border-primary-500'}
         ${readOnly ? 'bg-gray-50' : 'bg-white'}
       `}>
         {renderInput()}
@@ -156,18 +156,26 @@ export default function VoiceFormField({
           <button
             type="button"
             onClick={handleMicClick}
-            disabled={disabled}
+            disabled={disabled || isTranscribing}
             className={`
               relative w-10 h-10 flex items-center justify-center shrink-0 mr-0.5 rounded-full transition-all duration-200 overflow-hidden
               ${isRecording ? 'scale-110' : 'hover:scale-105'}
               disabled:opacity-30
             `}
-            title={isRecording ? 'Stop recording' : 'Speak to fill'}
+            title={isRecording ? 'Stop recording' : isTranscribing ? 'Transcribing...' : 'Speak to fill'}
           >
-            <img src={recordOrb} alt="" className={`absolute inset-0 w-full h-full object-cover rounded-full ${isRecording ? 'animate-pulse' : ''}`} />
-            <span className="relative z-10">
-              {isRecording ? <Square size={14} className="text-white drop-shadow-md" fill="white" /> : <Mic size={14} className="text-white drop-shadow-md" strokeWidth={2.5} />}
-            </span>
+            {isTranscribing ? (
+              <div className="w-full h-full flex items-center justify-center bg-amber-100 rounded-full">
+                <Loader2 size={16} className="text-amber-600 animate-spin" />
+              </div>
+            ) : (
+              <>
+                <img src={recordOrb} alt="" className={`absolute inset-0 w-full h-full object-cover rounded-full ${isRecording ? 'animate-pulse' : ''}`} />
+                <span className="relative z-10">
+                  {isRecording ? <Square size={14} className="text-white drop-shadow-md" fill="white" /> : <Mic size={14} className="text-white drop-shadow-md" strokeWidth={2.5} />}
+                </span>
+              </>
+            )}
           </button>
         )}
       </div>
