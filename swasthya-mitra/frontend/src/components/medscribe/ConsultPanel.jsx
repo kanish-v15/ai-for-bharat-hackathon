@@ -373,7 +373,7 @@ export default function ConsultPanel({ patient, onConsultationComplete }) {
                       {isRecording ? <Square size={22} className="text-white drop-shadow-md" fill="white" /> : <Mic size={26} className="text-white drop-shadow-md" strokeWidth={2} />}
                     </div>
                   </button>
-                  {isRecording && <div className="absolute -inset-2 rounded-full border-2 border-purple-300/60 animate-ping pointer-events-none" />}
+                  {isRecording && <div className="absolute -inset-2 rounded-full border-2 border-green-300/60 animate-ping pointer-events-none" />}
                 </div>
 
                 {isRecording ? (
@@ -625,7 +625,7 @@ export default function ConsultPanel({ patient, onConsultationComplete }) {
           {result.patient_audio_url && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-premium p-4">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 bg-violet-50 rounded-lg flex items-center justify-center"><Volume2 size={13} className="text-violet-600" /></div>
+                <div className="w-7 h-7 bg-green-50 rounded-lg flex items-center justify-center"><Volume2 size={13} className="text-green-600" /></div>
                 <h3 className="font-heading font-bold text-dark text-sm">Audio Instructions</h3>
               </div>
               <div className="pl-9"><AudioPlayer audioUrl={result.patient_audio_url} label="Listen to instructions" /></div>

@@ -99,7 +99,7 @@ export default function VoiceRecorder({ onRecordingComplete, maxDuration = 30, d
           {isRecording ? <Square size={28} className="text-white drop-shadow-md" fill="white" /> : <Mic size={28} className="text-white drop-shadow-md" />}
         </div>
         {isRecording && (
-          <span className="absolute -inset-2 rounded-full border-2 border-purple-300/60 animate-ping pointer-events-none" />
+          <span className="absolute -inset-2 rounded-full border-2 border-saffron-300/60 animate-ping pointer-events-none" />
         )}
       </button>
       <span className="text-sm text-gray-500">

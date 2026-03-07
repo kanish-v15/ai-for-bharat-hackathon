@@ -377,8 +377,8 @@ export default function DoctorProfileForm({ initialData = {}, onSave, mode = 'se
         {/* Clinic / Hospital */}
         <div className="bg-white rounded-2xl shadow-premium border border-gray-100 overflow-hidden">
           <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-violet-50 rounded-lg flex items-center justify-center">
-              <Building2 size={14} className="text-violet-500" />
+            <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
+              <Building2 size={14} className="text-green-500" />
             </div>
             <h3 className="font-heading font-bold text-dark text-sm">Clinic / Hospital</h3>
           </div>

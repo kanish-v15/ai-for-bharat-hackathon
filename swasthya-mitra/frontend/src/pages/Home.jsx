@@ -325,7 +325,7 @@ function AboutSection() {
                 { icon: Mic, label: 'Voice-First Design', color: 'bg-saffron-50' },
                 { icon: Languages, label: '8+ Indian Languages', color: 'bg-blue-50' },
                 { icon: Smartphone, label: 'Works on Basic Phones', color: 'bg-green-50' },
-                { icon: Shield, label: 'Data Privacy & Security', color: 'bg-purple-50' },
+                { icon: Shield, label: 'Data Privacy & Security', color: 'bg-green-50' },
               ].map(({ icon: Icon, label, color }) => (
                 <div key={label} className="bg-white rounded-2xl p-5 border border-gray-100 flex flex-col items-center text-center gap-3 shadow-md shadow-gray-900/5 hover:shadow-xl hover:-translate-y-1 transition-all">
                   <div className={`w-11 h-11 ${color} rounded-xl flex items-center justify-center`}>
@@ -439,7 +439,7 @@ function ServicesSection() {
                 <div className="flex gap-2">
                   {roles.map(role => (
                     <span key={role} className={`text-[10px] px-3 py-1.5 rounded-full font-bold card-3d-lift ${
-                      role === 'Patient' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                      role === 'Patient' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
                     }`}>{role}</span>
                   ))}
                 </div>
@@ -470,7 +470,7 @@ function RolesSection({ onGetStarted }) {
             { role: 'Patient', icon: User, color: 'from-blue-50 to-blue-100/30', border: 'border-blue-200', iconBg: 'bg-blue-100', iconColor: 'text-blue-600',
               desc: 'Access healthcare guidance in your own language, anytime, anywhere.',
               features: ['Lab Samjho - Understand lab reports', 'Care Guide - Ask health questions by voice', 'View history of all interactions', 'Government health scheme information'] },
-            { role: 'Doctor', icon: Stethoscope, color: 'from-purple-50 to-purple-100/30', border: 'border-purple-200', iconBg: 'bg-purple-100', iconColor: 'text-purple-600',
+            { role: 'Doctor', icon: Stethoscope, color: 'from-green-50 to-green-100/30', border: 'border-green-200', iconBg: 'bg-green-100', iconColor: 'text-green-600',
               desc: 'Reduce documentation burden and communicate better with patients.',
               features: ['MedScribe - AI consultation notes', 'Lab Samjho - Quick report analysis', 'Patient instructions in native language', 'Medical entity extraction'] },
           ].map(({ role, icon: Icon, color, border, iconBg, iconColor, desc, features }) => (
@@ -564,7 +564,7 @@ function HealthCardSection() {
               {[
                 { icon: FileText, color: 'bg-blue-100 text-blue-600', title: 'Lab Samjho', desc: 'Upload report → AI reads → Result stored. Next time, AI compares with past reports automatically.' },
                 { icon: Mic, color: 'bg-green-100 text-green-600', title: 'Care Guide', desc: '"Is my sugar normal?" → AI pulls your latest lab report and gives a personalized answer by voice.' },
-                { icon: Stethoscope, color: 'bg-purple-100 text-purple-600', title: 'MedScribe', desc: 'Doctor sees your full history — past reports, Q&A concerns, prior prescriptions. No repetition needed.' },
+                { icon: Stethoscope, color: 'bg-green-100 text-green-600', title: 'MedScribe', desc: 'Doctor sees your full history — past reports, Q&A concerns, prior prescriptions. No repetition needed.' },
                 { icon: Clock, color: 'bg-saffron-100 text-saffron-600', title: 'Health Timeline', desc: 'Every interaction creates a unified record. Patient and doctor both see the complete picture.' },
               ].map(({ icon: Icon, color, title, desc }, i) => (
                 <div key={title} className="flex gap-5">

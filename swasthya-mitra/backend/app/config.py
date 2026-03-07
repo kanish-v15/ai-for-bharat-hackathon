@@ -4,7 +4,7 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     # AWS
-    aws_region: str = "ap-south-1"
+    aws_region: str = "us-east-1"
     s3_bucket: str = "swasthyamitra-uploads"
 
     # DynamoDB tables
@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     cognito_app_client_id: str = ""
 
     # Bedrock Model
-    bedrock_model_id: str = "amazon.nova-lite-v1:0"
-    bedrock_lite_model_id: str = "amazon.nova-lite-v1:0"
+    bedrock_model_id: str = "us.amazon.nova-2-lite-v1:0"
+    bedrock_lite_model_id: str = "us.amazon.nova-2-lite-v1:0"
 
     # Sarvam AI (fallback for TTS in non-Hindi/English languages)
     sarvam_api_key: str = ""

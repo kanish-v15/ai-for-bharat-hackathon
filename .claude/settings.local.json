@@ -3,7 +3,35 @@
     "allow": [
       "WebSearch",
       "Bash(cd:*)",
-      "Bash(tail:*)"
+      "Bash(tail:*)",
+      "Bash(npm run:*)",
+      "Bash(npx vite:*)",
+      "mcp__plugin_figma_figma__whoami",
+      "mcp__plugin_figma_figma__get_screenshot",
+      "Bash(node:*)",
+      "mcp__plugin_figma_figma__get_design_context",
+      "mcp__plugin_figma_figma__get_metadata",
+      "Bash(python3:*)",
+      "Bash(mkdir:*)",
+      "Bash(rm:*)",
+      "Bash(aws lambda:*)",
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(curl:*)",
+      "Bash(tasklist:*)",
+      "Bash(netstat:*)",
+      "Bash(cp:*)",
+      "Bash(aws:*)",
+      "Bash(ls:*)",
+      "Bash(gh run:*)",
+      "Bash(gh secret:*)",
+      "Bash(gh workflow:*)",
+      "Bash(gh repo:*)",
+      "Bash(cmd.exe:*)",
+      "Bash(npm install:*)",
+      "WebFetch(domain:docs.sarvam.ai)",
+      "Bash(xargs grep:*)",
+      "Bash(taskkill:*)"
     ]
   }
 }

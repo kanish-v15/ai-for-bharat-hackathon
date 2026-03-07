@@ -27,9 +27,9 @@ const TYPE_CONFIG = {
   care_guide: {
     icon: Mic,
     label: 'Care Guide',
-    color: 'bg-violet-50 text-violet-600 border-violet-200',
-    iconColor: 'text-violet-500',
-    gradient: 'from-violet-400 to-violet-600',
+    color: 'bg-saffron-50 text-saffron-600 border-saffron-200',
+    iconColor: 'text-saffron-500',
+    gradient: 'from-saffron-400 to-saffron-600',
   },
   medscribe: {
     icon: Stethoscope,
@@ -113,7 +113,7 @@ export default function HealthTimeline() {
         {[
           { label: 'Total', value: stats.total, icon: Activity, color: 'from-primary-400 to-primary-600' },
           { label: 'Lab Reports', value: stats.lab, icon: FileText, color: 'from-sky-400 to-sky-600' },
-          { label: 'Care Guide', value: stats.care, icon: Mic, color: 'from-violet-400 to-violet-600' },
+          { label: 'Care Guide', value: stats.care, icon: Mic, color: 'from-saffron-400 to-saffron-600' },
           { label: 'MedScribe', value: stats.medscribe, icon: Stethoscope, color: 'from-emerald-400 to-emerald-600' },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="noise bg-white rounded-xl border border-cream-dark shadow-sm p-3 flex items-center gap-3">

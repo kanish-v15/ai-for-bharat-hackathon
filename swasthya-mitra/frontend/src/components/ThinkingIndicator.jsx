@@ -34,7 +34,7 @@ export default function ThinkingIndicator({ variant = 'assistant', label = 'Thin
 
   if (variant === 'bar') {
     return (
-      <div className="flex items-center gap-3 bg-gradient-to-r from-primary-50 via-indigo-50 to-primary-50 border border-primary-200/60 rounded-xl px-4 py-2.5 relative overflow-hidden">
+      <div className="flex items-center gap-3 bg-gradient-to-r from-primary-50 via-saffron-50 to-primary-50 border border-primary-200/60 rounded-xl px-4 py-2.5 relative overflow-hidden">
         {/* Shimmer overlay */}
         <div
           className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"

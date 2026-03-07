@@ -1,5 +1,7 @@
 import json
 import uuid
+import io
+import fitz  # PyMuPDF
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from app.services.bedrock_service import invoke_model, invoke_model_with_image
 from app.services.textract_service import extract_text_from_image
@@ -35,17 +37,28 @@ async def analyze_lab_report(
     except Exception:
         extracted_text = "Could not extract text from image."
 
-    # Step 2: Analyze with AI (vision for images, text-only for PDFs)
+    # Step 2: Analyze with AI (always use vision — convert PDFs to images)
     prompt = LAB_ANALYSIS_PROMPT.format(extracted_text=extracted_text)
     is_pdf = image.content_type == "application/pdf"
 
+    # Convert PDF to image for vision analysis
+    vision_bytes = image_bytes
+    vision_media_type = image.content_type
+    if is_pdf:
+        try:
+            doc = fitz.open(stream=image_bytes, filetype="pdf")
+            page = doc[0]  # First page
+            pix = page.get_pixmap(dpi=200)
+            vision_bytes = pix.tobytes("png")
+            vision_media_type = "image/png"
+            doc.close()
+            print(f"[LAB_SAMJHO] Converted PDF to PNG: {len(vision_bytes)} bytes")
+        except Exception as e:
+            print(f"[LAB_SAMJHO] PDF conversion failed: {e}")
+
     try:
-        if is_pdf:
-            # PDFs: use text-only analysis with Textract output
-            raw_response = invoke_model(prompt, system=LAB_ANALYSIS_SYSTEM)
-        else:
-            # Images: use vision model
-            raw_response = invoke_model_with_image(prompt, image_bytes, image.content_type, system=LAB_ANALYSIS_SYSTEM)
+        # Always use vision model for best results
+        raw_response = invoke_model_with_image(prompt, vision_bytes, vision_media_type, system=LAB_ANALYSIS_SYSTEM)
         # Parse JSON from response
         json_str = raw_response
         if "```json" in json_str:

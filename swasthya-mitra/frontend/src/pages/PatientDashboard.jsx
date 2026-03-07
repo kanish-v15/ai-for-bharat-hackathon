@@ -64,13 +64,13 @@ const TYPE_LABELS = {
 const TYPE_STYLES = {
   lab_report: { typeBg: 'bg-primary-50', typeColor: 'text-primary-600' },
   care_guide: { typeBg: 'bg-emerald-50', typeColor: 'text-emerald-600' },
-  medscribe: { typeBg: 'bg-violet-50', typeColor: 'text-violet-600' },
+  medscribe: { typeBg: 'bg-green-50', typeColor: 'text-green-600' },
 };
 
 const TYPE_STATUS = {
   lab_report: { status: 'Analyzed', statusColor: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' },
   care_guide: { status: 'Answered', statusColor: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
-  medscribe: { status: 'Documented', statusColor: 'bg-violet-50 text-violet-700 ring-1 ring-violet-200' },
+  medscribe: { status: 'Documented', statusColor: 'bg-green-50 text-green-700 ring-1 ring-green-200' },
 };
 
 /* ─── Helpers ─── */
@@ -125,9 +125,9 @@ export default function PatientDashboard() {
       delta: '',
       icon: Stethoscope,
       accent: 'accent-bar-amber',
-      iconGradient: 'from-violet-400 to-purple-600',
-      iconBg: 'bg-violet-50',
-      ring: 'ring-violet-100',
+      iconGradient: 'from-green-400 to-green-600',
+      iconBg: 'bg-green-50',
+      ring: 'ring-green-100',
     },
   ];
 
@@ -153,8 +153,8 @@ export default function PatientDashboard() {
       title: t('common.healthTimeline'),
       description: t('healthTimeline.subtitle'),
       icon: Clock,
-      gradient: 'from-violet-500 to-purple-600',
-      lightBg: 'bg-violet-50',
+      gradient: 'from-green-500 to-green-600',
+      lightBg: 'bg-green-50',
       to: '/health-timeline',
     },
   ];
@@ -449,8 +449,8 @@ export default function PatientDashboard() {
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100/80">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-violet-50 ring-1 ring-violet-200/60 flex items-center justify-center">
-                <TrendingUp size={14} className="text-violet-600" />
+              <div className="w-8 h-8 rounded-lg bg-green-50 ring-1 ring-green-200/60 flex items-center justify-center">
+                <TrendingUp size={14} className="text-green-600" />
               </div>
               <div>
                 <h2 className="font-display text-lg text-dark">

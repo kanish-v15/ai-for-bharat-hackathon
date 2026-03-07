@@ -15,21 +15,21 @@
   --color-saffron-900: #7C2D12;
   --color-saffron-950: #431407;
 
-  /* ── App accent (blue/indigo — SparkFinch-inspired) ── */
-  --color-primary-50: #eef1ff;
-  --color-primary-100: #dfe3ff;
-  --color-primary-200: #c6cbff;
-  --color-primary-300: #a3aaff;
-  --color-primary-400: #818aff;
-  --color-primary-500: #6872ff;
-  --color-primary-600: #5054f0;
-  --color-primary-700: #4243d4;
-  --color-primary-800: #3638ab;
-  --color-primary-900: #303388;
-  --color-primary-950: #1e1f50;
+  /* ── App accent (saffron — Indian tricolor) ── */
+  --color-primary-50: #FFF7ED;
+  --color-primary-100: #FFEDD5;
+  --color-primary-200: #FED7AA;
+  --color-primary-300: #FDBA74;
+  --color-primary-400: #FB923C;
+  --color-primary-500: #F97316;
+  --color-primary-600: #EA580C;
+  --color-primary-700: #C2410C;
+  --color-primary-800: #9A3412;
+  --color-primary-900: #7C2D12;
+  --color-primary-950: #431407;
 
-  --color-india-green: #0D6E6E;
-  --color-india-green-light: #14B8A6;
+  --color-india-green: #138808;
+  --color-india-green-light: #22C55E;
   --color-dark: #1A1A2E;
   --color-dark-muted: #2D2D44;
   --color-cream: #FAFAFA;

@@ -9,13 +9,13 @@ import { LANGUAGES } from '../../utils/constants';
 const AVATAR_GRADIENTS = [
   'from-primary-400 to-primary-600', 'from-india-green to-emerald-500',
   'from-amber-400 to-orange-500', 'from-rose-400 to-pink-500',
-  'from-violet-400 to-purple-500', 'from-sky-400 to-blue-500',
+  'from-green-400 to-green-500', 'from-sky-400 to-blue-500',
 ];
 
 const LANG_COLORS = {
   hindi: 'bg-primary-50 text-primary-700', tamil: 'bg-india-green/10 text-india-green',
   english: 'bg-warm-gray/10 text-warm-gray', telugu: 'bg-amber-50 text-amber-700',
-  kannada: 'bg-violet-50 text-violet-700', malayalam: 'bg-rose-50 text-rose-700',
+  kannada: 'bg-green-50 text-green-700', malayalam: 'bg-rose-50 text-rose-700',
   bengali: 'bg-sky-50 text-sky-700', marathi: 'bg-emerald-50 text-emerald-700',
   gujarati: 'bg-orange-50 text-orange-700',
 };

@@ -18,7 +18,7 @@ import PatientModal from '../components/medscribe/PatientModal';
 const AVATAR_GRADIENTS = [
   'from-primary-400 to-primary-600', 'from-india-green to-emerald-500',
   'from-amber-400 to-orange-500', 'from-rose-400 to-pink-500',
-  'from-violet-400 to-purple-500', 'from-sky-400 to-blue-500',
+  'from-green-400 to-green-500', 'from-sky-400 to-blue-500',
 ];
 
 const getInitials = (name) => name ? name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '??';

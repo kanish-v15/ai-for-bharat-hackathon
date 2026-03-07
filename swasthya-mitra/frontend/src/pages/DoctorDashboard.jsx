@@ -30,7 +30,7 @@ const AVATAR_GRADIENTS = [
   'from-india-green to-emerald-500',
   'from-amber-400 to-orange-500',
   'from-rose-400 to-pink-500',
-  'from-violet-400 to-purple-500',
+  'from-green-400 to-green-500',
   'from-sky-400 to-blue-500',
 ];
 
@@ -39,7 +39,7 @@ const LANG_COLORS = {
   tamil: 'bg-india-green/10 text-india-green ring-1 ring-india-green/20',
   english: 'bg-warm-gray/10 text-warm-gray ring-1 ring-warm-gray/20',
   telugu: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200/60',
-  kannada: 'bg-violet-50 text-violet-700 ring-1 ring-violet-200/60',
+  kannada: 'bg-green-50 text-green-700 ring-1 ring-green-200/60',
   malayalam: 'bg-rose-50 text-rose-700 ring-1 ring-rose-200/60',
   bengali: 'bg-sky-50 text-sky-700 ring-1 ring-sky-200/60',
   marathi: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60',

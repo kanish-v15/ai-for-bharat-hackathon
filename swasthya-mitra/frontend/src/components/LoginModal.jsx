@@ -279,7 +279,7 @@ export default function LoginModal() {
                   onClick={() => handleRoleSelect('doctor')}
                   className="p-5 border-2 border-gray-200 rounded-2xl hover:border-saffron-500 hover:bg-saffron-50 transition-all text-center group"
                 >
-                  <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-saffron-100 transition-colors">
+                  <div className="w-12 h-12 bg-saffron-50 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-saffron-100 transition-colors">
                     <span className="text-2xl">👩‍⚕️</span>
                   </div>
                   <h3 className="font-display font-bold text-sm text-dark">Doctor</h3>

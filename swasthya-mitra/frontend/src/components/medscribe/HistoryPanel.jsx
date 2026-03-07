@@ -16,7 +16,7 @@ const SOAP_CONFIG = {
 const LANG_COLORS = {
   hindi: 'bg-primary-50 text-primary-700', tamil: 'bg-india-green/10 text-india-green',
   english: 'bg-warm-gray/10 text-warm-gray', telugu: 'bg-amber-50 text-amber-700',
-  kannada: 'bg-violet-50 text-violet-700', malayalam: 'bg-rose-50 text-rose-700',
+  kannada: 'bg-green-50 text-green-700', malayalam: 'bg-rose-50 text-rose-700',
   bengali: 'bg-sky-50 text-sky-700', marathi: 'bg-emerald-50 text-emerald-700',
   gujarati: 'bg-orange-50 text-orange-700',
 };
@@ -151,7 +151,7 @@ export default function HistoryPanel({ consultations = [] }) {
                 {/* Audio */}
                 {c.patient_audio_url && (
                   <div className="flex items-center gap-2 px-1">
-                    <Volume2 size={12} className="text-violet-500 shrink-0" />
+                    <Volume2 size={12} className="text-green-500 shrink-0" />
                     <div className="flex-1"><AudioPlayer audioUrl={c.patient_audio_url} label="Audio Instructions" /></div>
                   </div>
                 )}
