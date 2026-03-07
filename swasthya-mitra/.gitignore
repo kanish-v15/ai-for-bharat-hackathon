@@ -29,3 +29,14 @@ Thumbs.db
 
 # Package locks (keep only one)
 yarn.lock
+
+# Lambda deployment artifacts
+*.zip
+lambda_package/
+lambda_package_linux/
+
+# Claude Code
+.claude/
+
+# Pytest cache
+.pytest_cache/
