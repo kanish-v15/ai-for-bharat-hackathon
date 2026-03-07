@@ -1,8 +1,19 @@
-.claude/settings.local.json
-.claude/plans/
-.claude/projects/
+# Claude Code
+.claude/
+
+# Planning & design docs (not source code)
+CLAUDE.md
+Resource/
+docs/
+website/
+*.webp
+design.md
+market-research.md
+ppt.pdf
+requirements.md
 
 # Lambda deployment artifacts
+swasthya-mitra/backend/lambda_deploy.zip
 swasthya-mitra/backend/lambda_deployment.zip
 swasthya-mitra/backend/lambda_deployment_linux.zip
 swasthya-mitra/backend/lambda_package/
@@ -11,3 +22,30 @@ swasthya-mitra/backend/lambda_package_linux/
 # Node
 node_modules/
 dist/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Build
+*.zip
