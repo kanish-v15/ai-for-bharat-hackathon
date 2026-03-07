@@ -6,11 +6,16 @@ import {
   Clock, Building2, Baby, Pill, Syringe, Monitor, Brain, Volume2,
   Zap, Database, CreditCard, Video, Activity, MapPin, Droplets, Star
 } from 'lucide-react';
+import Logo from '../components/Logo';
+import indiaMap from '../../icons/68c62ba2-facc-4c2d-8d17-06a01b84b131.jpg';
+import kanishPhoto from '../../icons/kanish.png';
+import saravanaPhoto from '../../icons/saravana.png';
+import sarmithaPhoto from '../../icons/sarmitha.png';
 
 /* ─── Section Label ─── */
-function SectionLabel({ text }) {
+function SectionLabel({ text, center }) {
   return (
-    <div className="flex items-center gap-2.5 mb-5">
+    <div className={`flex items-center gap-2.5 mb-5 ${center ? 'justify-center' : ''}`}>
       <span className="w-2.5 h-2.5 bg-saffron-500 rounded-full shadow-lg shadow-saffron-500/30"></span>
       <span className="text-xs font-extrabold text-saffron-600 uppercase tracking-[0.15em] font-display">{text}</span>
     </div>
@@ -78,11 +83,11 @@ function HeroSection({ onGetStarted }) {
             <div className="w-[260px] bg-gradient-to-b from-gray-900 to-dark rounded-[2.8rem] p-3 shadow-2xl shadow-dark/40 animate-float relative z-10">
               <div className="absolute top-3 left-1/2 -translate-x-1/2 w-28 h-6 bg-dark rounded-b-2xl z-20"></div>
               <div className="bg-cream rounded-[2.2rem] overflow-hidden">
-                <div className="bg-gradient-to-r from-saffron-500 to-saffron-600 px-5 py-3.5 flex items-center justify-between text-white">
-                  <span className="flex items-center gap-2 font-bold text-sm">
-                    <Heart size={14} fill="currentColor" /> SwasthyaMitra
+                <div className="bg-gradient-to-r from-saffron-500 to-saffron-600 px-4 pt-8 pb-3 flex items-center justify-between text-white">
+                  <span className="flex items-center gap-1.5 font-bold text-xs">
+                    <Logo size={18} /> <span className="text-white">Swasthya</span><span className="text-green-300">Mitra</span>
                   </span>
-                  <Mic size={14} />
+                  <Mic size={12} />
                 </div>
                 <div className="p-4 space-y-3 min-h-[300px] bg-gradient-to-b from-white to-cream">
                   <div className="bg-white rounded-2xl rounded-bl-md px-3.5 py-2.5 text-xs text-gray-700 shadow-sm max-w-[85%] border border-gray-50">
@@ -176,45 +181,131 @@ function InitiativeBanner() {
 /* ─── About ─── */
 function AboutSection() {
   return (
-    <section id="about" className="py-24">
+    <section id="about" className="py-16">
       <div className="max-w-6xl mx-auto px-6">
-        <SectionLabel text="About SwasthyaMitra" />
+        <SectionLabel text="About Us" />
         <h2 className="font-display font-extrabold text-4xl lg:text-[2.8rem] text-dark leading-tight mb-12">
           AI Healthcare,<br />Built for Every Indian
         </h2>
 
         <div className="grid lg:grid-cols-5 gap-6">
-          {/* Main dark card */}
-          <div className="lg:col-span-3 bg-gradient-to-br from-gray-900 via-dark to-gray-900 rounded-[2rem] p-10 text-white relative overflow-hidden shadow-2xl shadow-dark/30">
-            <div className="absolute top-0 right-0 w-60 h-60 bg-saffron-500/5 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-40 h-40 bg-india-green/5 rounded-full blur-3xl"></div>
+          {/* Main India map card — light theme */}
+          <div className="lg:col-span-3 bg-gradient-to-br from-saffron-50 via-white to-green-50 rounded-[2rem] p-10 relative overflow-hidden shadow-xl border border-saffron-100/60">
+            <div className="absolute top-0 right-0 w-72 h-72 bg-saffron-400/8 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 w-52 h-52 bg-india-green/6 rounded-full blur-3xl"></div>
 
-            <div className="inline-flex items-center gap-2.5 bg-white/10 rounded-full px-4 py-1.5 mb-8 backdrop-blur-sm">
+            <div className="inline-flex items-center gap-2.5 bg-white rounded-full px-4 py-1.5 mb-6 shadow-sm border border-gray-100">
               <span className="w-2 h-2 bg-india-green rounded-full animate-pulse shadow-lg shadow-india-green/50"></span>
-              <span className="text-xs font-semibold text-gray-300">Serving All of Bharat</span>
+              <span className="text-xs font-semibold text-gray-600">Serving All of Bharat</span>
             </div>
 
-            <div className="flex justify-center my-8">
-              <svg viewBox="0 0 200 230" className="w-52 h-52" fill="none">
-                <path d="M100 25 L140 40 L160 70 L175 100 L170 130 L150 160 L130 185 L110 200 L100 210 L90 200 L70 185 L50 160 L30 130 L25 100 L40 70 L60 40 Z"
-                  stroke="rgba(255,107,0,0.3)" strokeWidth="1.5" fill="rgba(255,107,0,0.03)" strokeDasharray="4,4" />
-                <circle cx="100" cy="75" r="4" fill="#FF6B00"><animate attributeName="r" values="3;7;3" dur="2s" repeatCount="indefinite" /></circle>
-                <circle cx="75" cy="125" r="4" fill="#138808"><animate attributeName="r" values="3;7;3" dur="2s" repeatCount="indefinite" begin="0.5s" /></circle>
-                <circle cx="125" cy="100" r="4" fill="#FF6B00"><animate attributeName="r" values="3;7;3" dur="2s" repeatCount="indefinite" begin="1s" /></circle>
-                <circle cx="90" cy="175" r="3" fill="#138808"><animate attributeName="r" values="2;5;2" dur="2s" repeatCount="indefinite" begin="1.5s" /></circle>
-                <circle cx="140" cy="140" r="3" fill="#FF6B00"><animate attributeName="r" values="2;5;2" dur="2s" repeatCount="indefinite" begin="0.7s" /></circle>
-              </svg>
-            </div>
+            <div className="flex justify-center my-4">
+              <div className="relative w-72">
+                {/* India map image */}
+                <img src={indiaMap} alt="India Map" className="w-full h-auto drop-shadow-lg" />
 
-            <div className="flex justify-around mt-8 border-t border-white/10 pt-6">
-              <div className="text-center">
-                <span className="block font-display font-extrabold text-3xl text-saffron-400">28+</span>
-                <span className="text-xs text-gray-500">States Covered</span>
+                {/* Animated city dots overlaid on the map */}
+                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                  <defs>
+                    <filter id="cityGlow2">
+                      <feGaussianBlur stdDeviation="0.8" result="blur" />
+                      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                    </filter>
+                  </defs>
+
+                  {/* Delhi — top center-right */}
+                  <g filter="url(#cityGlow2)">
+                    <circle cx="48" cy="28" r="1.8" fill="#C2410C" opacity="0.9">
+                      <animate attributeName="r" values="1.5;2.8;1.5" dur="2.5s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="48" cy="28" r="0.7" fill="#fff" />
+                  </g>
+                  <text x="48" y="25.5" textAnchor="middle" fill="#7C2D12" fontSize="3" fontWeight="700" fontFamily="sans-serif">Delhi</text>
+
+                  {/* Mumbai — left mid */}
+                  <g filter="url(#cityGlow2)">
+                    <circle cx="28" cy="58" r="1.8" fill="#C2410C" opacity="0.9">
+                      <animate attributeName="r" values="1.5;2.8;1.5" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
+                    </circle>
+                    <circle cx="28" cy="58" r="0.7" fill="#fff" />
+                  </g>
+                  <text x="22" y="57" textAnchor="end" fill="#7C2D12" fontSize="3" fontWeight="700" fontFamily="sans-serif">Mumbai</text>
+
+                  {/* Bengaluru — lower center */}
+                  <g filter="url(#cityGlow2)">
+                    <circle cx="40" cy="78" r="1.8" fill="#065F46" opacity="0.9">
+                      <animate attributeName="r" values="1.5;2.8;1.5" dur="2.5s" repeatCount="indefinite" begin="1.2s" />
+                    </circle>
+                    <circle cx="40" cy="78" r="0.7" fill="#fff" />
+                  </g>
+                  <text x="40" y="83" textAnchor="middle" fill="#065F46" fontSize="2.8" fontWeight="700" fontFamily="sans-serif">Bengaluru</text>
+
+                  {/* Chennai — right lower */}
+                  <g filter="url(#cityGlow2)">
+                    <circle cx="52" cy="75" r="1.5" fill="#C2410C" opacity="0.85">
+                      <animate attributeName="r" values="1.2;2.2;1.2" dur="2.5s" repeatCount="indefinite" begin="0.3s" />
+                    </circle>
+                    <circle cx="52" cy="75" r="0.6" fill="#fff" />
+                  </g>
+                  <text x="56" y="76" textAnchor="start" fill="#7C2D12" fontSize="2.8" fontWeight="600" fontFamily="sans-serif">Chennai</text>
+
+                  {/* Kolkata — right mid */}
+                  <g filter="url(#cityGlow2)">
+                    <circle cx="68" cy="42" r="1.5" fill="#065F46" opacity="0.85">
+                      <animate attributeName="r" values="1.2;2.2;1.2" dur="2.5s" repeatCount="indefinite" begin="0.9s" />
+                    </circle>
+                    <circle cx="68" cy="42" r="0.6" fill="#fff" />
+                  </g>
+                  <text x="72" y="43" textAnchor="start" fill="#065F46" fontSize="2.8" fontWeight="600" fontFamily="sans-serif">Kolkata</text>
+
+                  {/* Hyderabad — center */}
+                  <g filter="url(#cityGlow2)">
+                    <circle cx="45" cy="65" r="1.5" fill="#C2410C" opacity="0.85">
+                      <animate attributeName="r" values="1.2;2.2;1.2" dur="2.5s" repeatCount="indefinite" begin="1.5s" />
+                    </circle>
+                    <circle cx="45" cy="65" r="0.6" fill="#fff" />
+                  </g>
+                  <text x="50" y="66" textAnchor="start" fill="#7C2D12" fontSize="2.8" fontWeight="600" fontFamily="sans-serif">Hyderabad</text>
+
+                  {/* Jaipur */}
+                  <circle cx="38" cy="33" r="1.2" fill="#C2410C" opacity="0.7">
+                    <animate attributeName="r" values="0.8;1.8;0.8" dur="3s" repeatCount="indefinite" begin="1.8s" />
+                  </circle>
+
+                  {/* Lucknow */}
+                  <circle cx="58" cy="32" r="1.2" fill="#065F46" opacity="0.7">
+                    <animate attributeName="r" values="0.8;1.8;0.8" dur="3s" repeatCount="indefinite" begin="1.1s" />
+                  </circle>
+
+                  {/* Ahmedabad */}
+                  <circle cx="24" cy="44" r="1.2" fill="#065F46" opacity="0.7">
+                    <animate attributeName="r" values="0.8;1.8;0.8" dur="3s" repeatCount="indefinite" begin="0.4s" />
+                  </circle>
+
+                  {/* Kochi */}
+                  <circle cx="35" cy="88" r="1" fill="#C2410C" opacity="0.6">
+                    <animate attributeName="r" values="0.7;1.5;0.7" dur="3s" repeatCount="indefinite" begin="2s" />
+                  </circle>
+
+                  {/* Connecting lines */}
+                  <line x1="48" y1="28" x2="28" y2="58" stroke="#C2410C" strokeWidth="0.3" strokeDasharray="1.5,2" strokeOpacity="0.2" />
+                  <line x1="48" y1="28" x2="68" y2="42" stroke="#065F46" strokeWidth="0.3" strokeDasharray="1.5,2" strokeOpacity="0.2" />
+                  <line x1="48" y1="28" x2="45" y2="65" stroke="#C2410C" strokeWidth="0.3" strokeDasharray="1.5,2" strokeOpacity="0.15" />
+                  <line x1="28" y1="58" x2="40" y2="78" stroke="#065F46" strokeWidth="0.3" strokeDasharray="1.5,2" strokeOpacity="0.15" />
+                  <line x1="45" y1="65" x2="52" y2="75" stroke="#C2410C" strokeWidth="0.3" strokeDasharray="1.5,2" strokeOpacity="0.15" />
+                </svg>
               </div>
-              <div className="w-px bg-white/10"></div>
+            </div>
+
+            <div className="flex justify-around mt-6 border-t border-saffron-200/40 pt-6">
               <div className="text-center">
-                <span className="block font-display font-extrabold text-3xl text-saffron-400">24/7</span>
-                <span className="text-xs text-gray-500">Available Always</span>
+                <span className="block font-display font-extrabold text-3xl text-saffron-600">28+</span>
+                <span className="text-xs text-gray-500 font-medium">States Covered</span>
+              </div>
+              <div className="w-px bg-saffron-200/40"></div>
+              <div className="text-center">
+                <span className="block font-display font-extrabold text-3xl text-saffron-600">24/7</span>
+                <span className="text-xs text-gray-500 font-medium">Available Always</span>
               </div>
             </div>
           </div>
@@ -224,7 +315,7 @@ function AboutSection() {
             <div className="bg-white rounded-[1.5rem] p-7 border border-gray-100 shadow-lg shadow-gray-900/5">
               <h3 className="font-display font-bold text-xl text-dark mb-3">Our Mission</h3>
               <p className="text-sm text-gray-500 leading-relaxed">
-                SwasthyaMitra bridges the gap between advanced healthcare and the common citizen.
+                <span className="text-saffron-600">Swasthya</span><span className="text-india-green">Mitra</span> bridges the gap between advanced healthcare and the common citizen.
                 Whether you're a patient in a remote village or a doctor in a busy hospital,
                 our AI speaks your language and understands your needs.
               </p>
@@ -261,21 +352,23 @@ function HowItWorks() {
   ];
 
   return (
-    <section className="py-24 bg-white">
+    <section className="py-16 bg-white">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-14">
-          <SectionLabel text="How It Works" />
+          <SectionLabel text="How It Works" center />
           <h2 className="font-display font-extrabold text-4xl text-dark">Simple Steps to Get Started</h2>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {steps.map(({ icon: Icon, num, title, desc }) => (
-            <div key={num} className="relative bg-gradient-to-b from-cream to-white rounded-[1.5rem] p-7 border border-gray-100 group hover:shadow-xl hover:-translate-y-1 transition-all">
-              <div className="w-14 h-14 bg-gradient-to-br from-saffron-50 to-saffron-100 rounded-2xl flex items-center justify-center mb-5 group-hover:shadow-lg group-hover:shadow-saffron-500/20 transition-shadow">
-                <Icon size={24} className="text-saffron-500" />
+            <div key={num} className="card-3d-parent">
+            <div className="card-3d relative bg-white rounded-[1.5rem] p-7 border-2 border-saffron-100 group shadow-lg shadow-saffron-500/8">
+              <div className="w-14 h-14 bg-gradient-to-br from-saffron-400 to-saffron-500 rounded-2xl flex items-center justify-center mb-5 shadow-lg shadow-saffron-500/30 group-hover:shadow-xl group-hover:shadow-saffron-500/40 transition-shadow">
+                <Icon size={24} className="text-white" />
               </div>
-              <span className="absolute top-5 right-5 font-display font-extrabold text-4xl text-saffron-500/8">{num}</span>
+              <span className="absolute top-5 right-5 font-display font-extrabold text-5xl text-saffron-500/40">{num}</span>
               <h3 className="font-display font-bold text-lg text-dark mb-2">{title}</h3>
-              <p className="text-sm text-gray-400 leading-relaxed">{desc}</p>
+              <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
+            </div>
             </div>
           ))}
         </div>
@@ -314,7 +407,7 @@ function ServicesSection() {
   ];
 
   return (
-    <section id="services" className="py-24">
+    <section id="services" className="py-16">
       <div className="max-w-6xl mx-auto px-6">
         <SectionLabel text="Our Services" />
         <h2 className="font-display font-extrabold text-4xl lg:text-[2.8rem] text-dark leading-tight mb-4">
@@ -326,7 +419,8 @@ function ServicesSection() {
 
         <div className="grid lg:grid-cols-3 gap-7">
           {services.map(({ icon: Icon, num, title, tagline, desc, tags, roles, featured, gradient, border, iconBg, iconColor }) => (
-            <div key={title} className={`bg-gradient-to-b ${gradient} ${border} border-2 rounded-[1.5rem] p-7 transition-all hover:shadow-2xl hover:-translate-y-2 ${featured ? 'ring-2 ring-saffron-500/20 shadow-xl shadow-saffron-500/10' : 'shadow-lg shadow-gray-900/5'}`}>
+            <div key={title} className="card-3d-parent">
+            <div className={`card-3d bg-gradient-to-b ${gradient} ${border} border-2 rounded-[1.5rem] p-7 ${featured ? 'ring-2 ring-saffron-500/20 shadow-xl shadow-saffron-500/10' : 'shadow-lg shadow-gray-900/5'}`}>
               <div className="flex items-center justify-between mb-5">
                 <div className={`w-14 h-14 ${iconBg} rounded-2xl flex items-center justify-center shadow-sm`}>
                   <Icon size={24} className={iconColor} />
@@ -344,15 +438,16 @@ function ServicesSection() {
               <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                 <div className="flex gap-2">
                   {roles.map(role => (
-                    <span key={role} className={`text-[10px] px-3 py-1.5 rounded-full font-bold ${
+                    <span key={role} className={`text-[10px] px-3 py-1.5 rounded-full font-bold card-3d-lift ${
                       role === 'Patient' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
                     }`}>{role}</span>
                   ))}
                 </div>
-                <div className="w-9 h-9 bg-saffron-50 rounded-xl flex items-center justify-center hover:bg-saffron-100 transition-colors cursor-pointer">
+                <div className="w-9 h-9 bg-saffron-50 rounded-xl flex items-center justify-center hover:bg-saffron-100 transition-colors cursor-pointer card-3d-lift">
                   <ArrowRight size={16} className="text-saffron-500" />
                 </div>
               </div>
+            </div>
             </div>
           ))}
         </div>
@@ -364,10 +459,10 @@ function ServicesSection() {
 /* ─── Roles ─── */
 function RolesSection({ onGetStarted }) {
   return (
-    <section className="py-24 bg-white">
+    <section className="py-16 bg-white">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-14">
-          <SectionLabel text="Who Can Use" />
+          <SectionLabel text="Who Can Use" center />
           <h2 className="font-display font-extrabold text-4xl text-dark">Designed for Everyone</h2>
         </div>
         <div className="grid md:grid-cols-2 gap-8">
@@ -407,7 +502,7 @@ function RolesSection({ onGetStarted }) {
 /* ─── Health Card ─── */
 function HealthCardSection() {
   return (
-    <section className="py-24">
+    <section className="py-16">
       <div className="max-w-6xl mx-auto px-6">
         <SectionLabel text="Unified Health Record" />
         <h2 className="font-display font-extrabold text-4xl lg:text-[2.8rem] text-dark leading-tight mb-4">
@@ -424,8 +519,8 @@ function HealthCardSection() {
                 <div className="tricolor rounded-full mb-5"></div>
                 <div className="flex items-center justify-between mb-7">
                   <div className="flex items-center gap-2.5">
-                    <Heart size={18} className="text-saffron-400" fill="currentColor" />
-                    <span className="font-display font-bold">SwasthyaMitra</span>
+                    <Logo size={24} />
+                    <span className="font-display font-bold"><span className="text-saffron-400">Swasthya</span><span className="text-green-400">Mitra</span></span>
                   </div>
                   <div className="flex gap-0 h-4 w-10 rounded-sm overflow-hidden">
                     <div className="flex-1 bg-saffron-500"></div>
@@ -505,7 +600,7 @@ function SchemesSection() {
   ];
 
   return (
-    <section id="schemes" className="py-24">
+    <section id="schemes" className="py-16">
       <div className="max-w-6xl mx-auto px-6">
         <SectionLabel text="Government Initiatives" />
         <h2 className="font-display font-extrabold text-4xl lg:text-[2.8rem] text-dark leading-tight mb-4">
@@ -543,7 +638,7 @@ function TechSection() {
     <section className="py-20 bg-white overflow-hidden">
       <div className="max-w-6xl mx-auto px-6 mb-10">
         <div className="text-center">
-          <SectionLabel text="Technology" />
+          <SectionLabel text="Technology" center />
           <h2 className="font-display font-extrabold text-4xl text-dark">Powered by AWS</h2>
           <p className="text-gray-400 mt-3 text-lg">Built on world-class cloud infrastructure for reliability, scale, and security.</p>
         </div>
@@ -567,28 +662,30 @@ function TechSection() {
 /* ─── Team ─── */
 function TeamSection() {
   const members = [
-    { initial: 'K', name: 'Kanish', role: 'Lab Samjho Lead', desc: 'Building the AI-powered lab report interpretation engine with OCR and multilingual summaries.', tag: 'Lab Samjho', color: 'from-blue-400 to-blue-600' },
-    { initial: 'S', name: 'Sharmi', role: 'Care Guide Lead', desc: 'Designing the voice-first health Q&A system with natural language understanding.', tag: 'Care Guide', color: 'from-saffron-400 to-saffron-600' },
-    { initial: 'S', name: 'Saravana', role: 'MedScribe Lead', desc: 'Creating the AI documentation assistant for doctors with SOAP notes and entity extraction.', tag: 'MedScribe', color: 'from-emerald-400 to-emerald-600' },
+    { photo: saravanaPhoto, name: 'Saravana', role: 'MedScribe Lead', desc: 'Creating the AI documentation assistant for doctors with SOAP notes and entity extraction.', tag: 'MedScribe', gradient: 'from-emerald-50 to-emerald-100/30', border: 'border-emerald-200', ring: 'ring-emerald-300', tagBg: 'bg-emerald-50 text-emerald-600' },
+    { photo: kanishPhoto, name: 'Kanish', role: 'Lab Samjho Lead', desc: 'Building the AI-powered lab report interpretation engine with OCR and multilingual summaries.', tag: 'Lab Samjho', gradient: 'from-blue-50 to-blue-100/30', border: 'border-blue-200', ring: 'ring-blue-300', tagBg: 'bg-blue-50 text-blue-600' },
+    { photo: sarmithaPhoto, name: 'Sarmitha', role: 'Care Guide Lead', desc: 'Designing the voice-first health Q&A system with natural language understanding.', tag: 'Care Guide', gradient: 'from-saffron-50 to-saffron-100/30', border: 'border-saffron-200', ring: 'ring-saffron-300', tagBg: 'bg-saffron-50 text-saffron-600' },
   ];
 
   return (
-    <section id="team" className="py-24">
+    <section id="team" className="py-16">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-14">
-          <SectionLabel text="Our Team" />
-          <h2 className="font-display font-extrabold text-4xl text-dark">The Minds Behind SwasthyaMitra</h2>
+          <SectionLabel text="Our Team" center />
+          <h2 className="font-display font-extrabold text-4xl text-dark">The Minds Behind <span className="text-saffron-500">Swasthya</span><span className="text-india-green">Mitra</span></h2>
         </div>
         <div className="grid sm:grid-cols-3 gap-8">
-          {members.map(({ initial, name, role, desc, tag, color }) => (
-            <div key={name} className="bg-white rounded-[2rem] p-8 border border-gray-100 text-center shadow-lg shadow-gray-900/5 hover:shadow-2xl hover:-translate-y-2 transition-all">
-              <div className={`w-18 h-18 bg-gradient-to-br ${color} rounded-2xl flex items-center justify-center mx-auto mb-5 w-[4.5rem] h-[4.5rem] shadow-lg`}>
-                <span className="text-white font-display font-extrabold text-2xl">{initial}</span>
+          {members.map(({ photo, name, role, desc, tag, gradient, border, ring, tagBg }) => (
+            <div key={name} className="card-3d-parent">
+            <div className={`card-3d bg-gradient-to-b ${gradient} rounded-[2rem] p-8 border-2 ${border} text-center shadow-xl`}>
+              <div className={`w-28 h-28 rounded-full mx-auto mb-6 ring-4 ${ring} shadow-xl overflow-hidden`}>
+                <img src={photo} alt={name} className="w-full h-full object-cover object-top brightness-105 contrast-105 saturate-110" />
               </div>
               <h3 className="font-display font-extrabold text-dark text-xl">{name}</h3>
-              <p className="text-sm text-saffron-500 font-bold mb-3">{role}</p>
-              <p className="text-sm text-gray-400 leading-relaxed mb-5">{desc}</p>
-              <span className="inline-block text-[10px] px-4 py-1.5 rounded-full bg-saffron-50 text-saffron-600 font-bold">{tag}</span>
+              <p className="text-sm text-saffron-600 font-bold mb-3">{role}</p>
+              <p className="text-sm text-gray-500 leading-relaxed mb-5">{desc}</p>
+              <span className={`inline-block text-[10px] px-4 py-1.5 rounded-full font-bold ${tagBg}`}>{tag}</span>
+            </div>
             </div>
           ))}
         </div>
@@ -600,7 +697,7 @@ function TeamSection() {
 /* ─── CTA ─── */
 function CTASection({ onGetStarted }) {
   return (
-    <section className="py-24">
+    <section className="py-16">
       <div className="max-w-4xl mx-auto px-6">
         <div className="bg-gradient-to-br from-saffron-500 via-saffron-600 to-saffron-700 rounded-[2rem] p-12 lg:p-20 text-center text-white relative overflow-hidden shadow-2xl shadow-saffron-500/30">
           <div className="absolute inset-0 opacity-10">
@@ -613,7 +710,7 @@ function CTASection({ onGetStarted }) {
               Ready to Experience<br />AI Healthcare?
             </h2>
             <p className="text-white/70 mb-10 max-w-lg mx-auto text-lg">
-              Join thousands of Indians already using SwasthyaMitra for better health understanding.
+              Join thousands of Indians already using <span className="font-extrabold text-yellow-200">Swasthya</span><span className="font-extrabold text-green-300">Mitra</span> for better health understanding.
             </p>
             <button onClick={onGetStarted} className="bg-white text-saffron-600 px-10 py-5 rounded-full font-extrabold text-lg hover:shadow-2xl hover:shadow-white/30 hover:-translate-y-1 transition-all">
               Start Now — It's Free

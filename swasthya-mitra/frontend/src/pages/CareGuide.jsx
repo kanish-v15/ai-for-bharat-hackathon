@@ -381,7 +381,7 @@ export default function CareGuide() {
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 chat-scroll">
           {/* Welcome message */}
           <div className="flex justify-start">
-            <div className="max-w-[80%] sm:max-w-[70%]">
+            <div className="max-w-[85%] sm:max-w-[70%] lg:max-w-[60%]">
               <div className="bg-white rounded-2xl rounded-tl-md px-4 py-3 shadow-sm border border-gray-100">
                 <p className="text-sm text-dark font-body leading-relaxed">{welcomeText}</p>
                 {/* Quick actions */}
@@ -422,7 +422,7 @@ export default function CareGuide() {
 
             return (
               <div key={i} className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-slide-up`}>
-                <div className={`max-w-[80%] sm:max-w-[70%]`}>
+                <div className="max-w-[85%] sm:max-w-[70%] lg:max-w-[60%]">
                   {/* Emergency badge */}
                   {msg.is_emergency && (
                     <div className="flex items-center gap-1.5 bg-red-500 text-white px-3 py-1.5 rounded-xl text-xs font-heading font-bold mb-1">

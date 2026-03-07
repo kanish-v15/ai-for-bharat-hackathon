@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { X, Heart, MessageSquare, UserCheck, Languages, ArrowLeft } from 'lucide-react';
+import { X, MessageSquare, UserCheck, Languages, ArrowLeft, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import Logo from './Logo';
 import { useLanguage } from '../context/LanguageContext';
 import { useNavigate } from 'react-router-dom';
+import { sendOtp, verifyOtp, resendOtp } from '../services/api';
 
 const LANGUAGES_LIST = [
   { code: 'english', native: 'English', english: '' },
@@ -16,7 +18,6 @@ const LANGUAGES_LIST = [
   { code: 'gujarati', native: 'ગુજરાતી', english: 'Gujarati' },
 ];
 
-const STEP_ICONS = [Heart, MessageSquare, UserCheck, Languages];
 
 export default function LoginModal() {
   const { login, setShowLogin } = useAuth();
@@ -26,9 +27,41 @@ export default function LoginModal() {
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [role, setRole] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
 
-  const handlePhoneSubmit = () => {
-    if (phone.length === 10) setStep(2);
+  const handlePhoneSubmit = async () => {
+    if (phone.length !== 10) return;
+    setLoading(true);
+    setError('');
+    try {
+      const result = await sendOtp(phone);
+      // In dev mode, auto-fill OTP if returned
+      if (result.dev_otp) {
+        const digits = result.dev_otp.split('');
+        setOtp(digits);
+      }
+      setStep(2);
+      startResendCooldown();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to send OTP. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startResendCooldown = () => {
+    setResendCooldown(30);
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   const handleOtpChange = (index, value) => {
@@ -42,8 +75,39 @@ export default function LoginModal() {
     }
   };
 
-  const handleOtpSubmit = () => {
-    if (otp.every(d => d !== '')) setStep(3);
+  const handleOtpSubmit = async () => {
+    const otpString = otp.join('');
+    if (otpString.length !== 6) return;
+    setLoading(true);
+    setError('');
+    try {
+      await verifyOtp(phone, otpString);
+      setStep(3);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Invalid OTP. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0) return;
+    setLoading(true);
+    setError('');
+    try {
+      const result = await resendOtp(phone);
+      if (result.dev_otp) {
+        const digits = result.dev_otp.split('');
+        setOtp(digits);
+      } else {
+        setOtp(['', '', '', '', '', '']);
+      }
+      startResendCooldown();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to resend OTP.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRoleSelect = (r) => {
@@ -55,6 +119,14 @@ export default function LoginModal() {
     login(role, phone, lang);
     setLanguage(lang);
     navigate('/profile-setup');
+  };
+
+  const handleBack = () => {
+    setError('');
+    if (step === 2) {
+      setOtp(['', '', '', '', '', '']);
+    }
+    setStep(step - 1);
   };
 
   return (
@@ -72,7 +144,7 @@ export default function LoginModal() {
 
         {step > 1 && (
           <button
-            onClick={() => setStep(step - 1)}
+            onClick={handleBack}
             className="absolute top-4 left-4 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors z-10"
           >
             <ArrowLeft size={16} />
@@ -89,19 +161,26 @@ export default function LoginModal() {
         </div>
 
         <div className="p-8 pt-4">
+          {/* Error message */}
+          {error && (
+            <div className="mb-4 px-3 py-2 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 font-medium text-center animate-slide-up">
+              {error}
+            </div>
+          )}
+
           {/* Step 1: Phone */}
           {step === 1 && (
             <div className="animate-slide-up">
               <div className="text-center mb-6">
-                <div className="w-14 h-14 bg-saffron-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Heart size={28} className="text-saffron-500" />
+                <div className="flex justify-center mb-4">
+                  <Logo size={56} />
                 </div>
-                <h2 className="font-display font-bold text-xl text-dark">Welcome to SwasthyaMitra</h2>
+                <h2 className="font-display font-bold text-xl text-dark">Welcome to <span className="text-saffron-500">Swasthya</span><span className="text-india-green">Mitra</span></h2>
                 <p className="text-gray-500 text-sm mt-1">Enter your mobile number to get started</p>
               </div>
               <div className="flex items-center border-2 border-gray-200 rounded-2xl overflow-hidden focus-within:border-saffron-500 transition-colors mb-4">
                 <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-r border-gray-200 text-sm font-medium text-gray-600">
-                  <span className="text-base">🇮🇳</span>
+                  <span className="text-base">IN</span>
                   <span>+91</span>
                 </div>
                 <input
@@ -110,16 +189,17 @@ export default function LoginModal() {
                   onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                   placeholder="Enter 10-digit mobile number"
                   className="flex-1 px-4 py-3 text-sm outline-none"
+                  onKeyDown={e => e.key === 'Enter' && handlePhoneSubmit()}
                 />
               </div>
               <button
                 onClick={handlePhoneSubmit}
-                disabled={phone.length !== 10}
-                className="w-full bg-saffron-500 text-white py-3 rounded-2xl font-semibold text-sm hover:bg-saffron-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                disabled={phone.length !== 10 || loading}
+                className="w-full bg-saffron-500 text-white py-3 rounded-2xl font-semibold text-sm hover:bg-saffron-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
-                Send OTP
+                {loading ? <><Loader2 size={16} className="animate-spin" /> Sending OTP...</> : 'Send OTP'}
               </button>
-              <p className="text-xs text-gray-400 text-center mt-3">We'll send a 6-digit verification code to your number</p>
+              <p className="text-xs text-gray-400 text-center mt-3">We'll send a 6-digit verification code via SMS</p>
             </div>
           )}
 
@@ -146,6 +226,9 @@ export default function LoginModal() {
                       if (e.key === 'Backspace' && !digit && i > 0) {
                         document.getElementById(`otp-${i - 1}`)?.focus();
                       }
+                      if (e.key === 'Enter' && otp.every(d => d !== '')) {
+                        handleOtpSubmit();
+                      }
                     }}
                     className="w-12 h-12 border-2 border-gray-200 rounded-xl text-center text-lg font-bold focus:border-saffron-500 outline-none transition-colors"
                   />
@@ -153,13 +236,20 @@ export default function LoginModal() {
               </div>
               <button
                 onClick={handleOtpSubmit}
-                disabled={!otp.every(d => d !== '')}
-                className="w-full bg-saffron-500 text-white py-3 rounded-2xl font-semibold text-sm hover:bg-saffron-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                disabled={!otp.every(d => d !== '') || loading}
+                className="w-full bg-saffron-500 text-white py-3 rounded-2xl font-semibold text-sm hover:bg-saffron-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
-                Verify & Continue
+                {loading ? <><Loader2 size={16} className="animate-spin" /> Verifying...</> : 'Verify & Continue'}
               </button>
               <p className="text-xs text-gray-400 text-center mt-3">
-                Didn't receive? <button className="text-saffron-500 font-medium">Resend OTP</button>
+                Didn't receive?{' '}
+                <button
+                  onClick={handleResendOtp}
+                  disabled={resendCooldown > 0 || loading}
+                  className="text-saffron-500 font-medium disabled:text-gray-300 disabled:cursor-not-allowed"
+                >
+                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend OTP'}
+                </button>
               </p>
             </div>
           )}

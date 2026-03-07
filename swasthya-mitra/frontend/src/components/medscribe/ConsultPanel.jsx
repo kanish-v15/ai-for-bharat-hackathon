@@ -2,12 +2,15 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Mic, Square, Sparkles, CheckCircle, AlertTriangle, Pill,
   User, FileText, Activity, Volume2, Stethoscope, Languages, Printer, RotateCcw,
+  Keyboard, Send,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { useAuth } from '../../context/AuthContext';
 import { processMedScribe, processMedScribeText } from '../../services/api';
 import { saveInteraction, addConsultationToPatient } from '../../services/dataStore';
 import { LANGUAGES } from '../../utils/constants';
+import { generatePatientPDF } from '../../utils/generatePDF';
 import AudioPlayer from '../AudioPlayer';
 import Disclaimer from '../Disclaimer';
 import LoadingSpinner from '../LoadingSpinner';
@@ -39,6 +42,7 @@ const MAX_DURATION = 300;
 export default function ConsultPanel({ patient, onConsultationComplete }) {
   const { language } = useLanguage();
   const { addNotification } = useNotifications();
+  const { user } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
@@ -48,6 +52,8 @@ export default function ConsultPanel({ patient, onConsultationComplete }) {
   const [recordingTime, setRecordingTime] = useState(0);
   const [waveformBars, setWaveformBars] = useState(new Array(24).fill(3));
   const [liveTranscript, setLiveTranscript] = useState('');
+  const [inputMode, setInputMode] = useState('record'); // 'record' | 'type'
+  const [typedNotes, setTypedNotes] = useState('');
 
   // MediaRecorder refs
   const mediaRecorderRef = useRef(null);
@@ -278,120 +284,231 @@ export default function ConsultPanel({ patient, onConsultationComplete }) {
     }
   };
 
+  const handleSubmitText = async () => {
+    if (!typedNotes.trim()) return;
+    setIsLoading(true);
+    setLoadingStep(0);
+    setError(null);
+    setResult(null);
+
+    const stepInterval = setInterval(() => {
+      setLoadingStep((s) => Math.min(s + 1, 4));
+    }, 3000);
+
+    try {
+      const data = await processMedScribeText(typedNotes.trim(), consultLang, 'demo-doctor', patient?.id);
+      if (data && !data.transcription) {
+        data.transcription = typedNotes.trim();
+      }
+      setResult(data);
+
+      saveInteraction('medscribe', {
+        ...data,
+        language: consultLang,
+        transcription: data.transcription,
+      });
+
+      if (patient?.id) {
+        addConsultationToPatient(patient.id, {
+          ...data,
+          language: consultLang,
+          transcription: data.transcription,
+        });
+        onConsultationComplete?.();
+      }
+
+      addNotification('SOAP Notes Generated', 'Consultation documented successfully', 'success', '/medscribe');
+    } catch (err) {
+      const detail = err.response?.data?.detail || err.message;
+      setError(detail || 'Failed to process consultation. Please try again.');
+    } finally {
+      clearInterval(stepInterval);
+      setIsLoading(false);
+    }
+  };
+
   const handleReset = () => {
     setResult(null);
     setError(null);
     setRecordingTime(0);
     setLiveTranscript('');
     liveTranscriptRef.current = '';
+    setTypedNotes('');
   };
 
   const steps = LOADING_STEPS[language] || LOADING_STEPS.english;
 
   return (
     <div className="space-y-4">
-      {/* Recording */}
+      {/* Input: Record or Type */}
       {!result && !isLoading && (
-        <div className={`bg-white rounded-2xl border-2 ${isRecording ? 'border-red-300 bg-red-50/10' : 'border-dashed border-gray-200 hover:border-primary-300'} transition-all overflow-hidden`}>
-          <div className="px-6 py-6 flex flex-col items-center text-center">
-            <div className="relative mb-4">
-              <button onClick={isRecording ? stopRecording : startRecording}
-                className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 ${isRecording ? 'scale-110' : 'hover:scale-105'}`}>
-                <img src={recordOrb} alt="" className={`w-20 h-20 object-contain rounded-full ${isRecording ? 'animate-pulse' : ''}`} />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  {isRecording ? <Square size={22} className="text-white drop-shadow-md" fill="white" /> : <Mic size={26} className="text-white drop-shadow-md" strokeWidth={2} />}
-                </div>
+        <div className="space-y-3">
+          {/* Mode Toggle */}
+          {!isRecording && (
+            <div className="flex items-center justify-center gap-1 bg-gray-100 rounded-xl p-1 max-w-xs mx-auto">
+              <button
+                onClick={() => setInputMode('record')}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-heading font-bold transition-all ${inputMode === 'record' ? 'bg-white text-primary-600 shadow-sm' : 'text-warm-gray hover:text-dark'}`}
+              >
+                <Mic size={13} /> Record
               </button>
-              {isRecording && <div className="absolute -inset-2 rounded-full border-2 border-purple-300/60 animate-ping pointer-events-none" />}
+              <button
+                onClick={() => setInputMode('type')}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-heading font-bold transition-all ${inputMode === 'type' ? 'bg-white text-primary-600 shadow-sm' : 'text-warm-gray hover:text-dark'}`}
+              >
+                <Keyboard size={13} /> Type
+              </button>
             </div>
+          )}
 
-            {isRecording ? (
-              <div className="space-y-3 w-full">
-                <div className="flex items-center justify-center gap-3">
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping" />
-                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
-                  </span>
-                  <span className="text-sm text-red-600 font-heading font-bold">Recording {formatTime(recordingTime)}</span>
-                  <span className="text-[10px] text-red-400/80 font-body">max 5:00</span>
+          {/* Record Mode */}
+          {inputMode === 'record' && (
+            <div className={`bg-white rounded-2xl border-2 ${isRecording ? 'border-red-300 bg-red-50/10' : 'border-dashed border-gray-200 hover:border-primary-300'} transition-all overflow-hidden`}>
+              <div className="px-6 py-6 flex flex-col items-center text-center">
+                <div className="relative mb-4">
+                  <button onClick={isRecording ? stopRecording : startRecording}
+                    className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 ${isRecording ? 'scale-110' : 'hover:scale-105'}`}>
+                    <img src={recordOrb} alt="" className={`w-20 h-20 object-contain rounded-full ${isRecording ? 'animate-pulse' : ''}`} />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      {isRecording ? <Square size={22} className="text-white drop-shadow-md" fill="white" /> : <Mic size={26} className="text-white drop-shadow-md" strokeWidth={2} />}
+                    </div>
+                  </button>
+                  {isRecording && <div className="absolute -inset-2 rounded-full border-2 border-purple-300/60 animate-ping pointer-events-none" />}
                 </div>
 
-                {/* Waveform + Live Transcript */}
-                <div className="w-full max-w-lg mx-auto space-y-3">
-                  {/* Waveform bar */}
-                  <div className="px-4 py-3 bg-white/90 rounded-xl border border-primary-200/40 shadow-sm">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 animate-ping" /><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" /></span>
-                      <p className="text-[10px] uppercase tracking-widest text-warm-gray/60 font-heading font-semibold">
-                        Capturing — {LANGUAGES[consultLang]?.labelEn || consultLang}
-                      </p>
+                {isRecording ? (
+                  <div className="space-y-3 w-full">
+                    <div className="flex items-center justify-center gap-3">
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping" />
+                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+                      </span>
+                      <span className="text-sm text-red-600 font-heading font-bold">Recording {formatTime(recordingTime)}</span>
+                      <span className="text-[10px] text-red-400/80 font-body">max 5:00</span>
                     </div>
-                    <div className="flex items-center justify-center gap-[3px] h-10">
-                      {waveformBars.map((h, i) => (
-                        <div
-                          key={i}
-                          className="w-1.5 rounded-full bg-gradient-to-t from-primary-500 to-primary-400 transition-all duration-75"
-                          style={{ height: `${h}px` }}
-                        />
+
+                    {/* Waveform + Live Transcript */}
+                    <div className="w-full max-w-lg mx-auto space-y-3">
+                      {/* Waveform bar */}
+                      <div className="px-4 py-3 bg-white/90 rounded-xl border border-primary-200/40 shadow-sm">
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 animate-ping" /><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" /></span>
+                          <p className="text-[10px] uppercase tracking-widest text-warm-gray/60 font-heading font-semibold">
+                            Capturing — {LANGUAGES[consultLang]?.labelEn || consultLang}
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-center gap-[3px] h-10">
+                          {waveformBars.map((h, i) => (
+                            <div
+                              key={i}
+                              className="w-1.5 rounded-full bg-gradient-to-t from-primary-500 to-primary-400 transition-all duration-75"
+                              style={{ height: `${h}px` }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Live transcript panel */}
+                      <div className="bg-white/90 rounded-xl border border-gray-200/60 shadow-sm px-4 py-3 min-h-[80px] max-h-[200px] overflow-y-auto">
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <FileText size={11} className="text-primary-400" />
+                          <p className="text-[10px] uppercase tracking-widest text-warm-gray/60 font-heading font-semibold">
+                            Live Transcript
+                          </p>
+                          {liveTranscript && (
+                            <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 font-heading font-medium border border-green-100 animate-pulse">
+                              Live
+                            </span>
+                          )}
+                        </div>
+                        {liveTranscript ? (
+                          <p className="font-body text-xs text-dark leading-relaxed whitespace-pre-wrap">{liveTranscript}</p>
+                        ) : (
+                          <p className="font-body text-xs text-warm-gray/40 italic">
+                            Start speaking — text will appear here in real time...
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <p className="text-[10px] text-warm-gray/50 font-body">
+                      Live preview uses browser STT — also used as fallback if backend audio processing fails
+                    </p>
+
+                    <button onClick={stopRecording} className="mt-2 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-500 text-white font-heading font-bold text-xs hover:bg-red-600 transition-all">
+                      <Square size={12} fill="white" /> Stop Recording
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <h3 className="font-heading font-bold text-dark text-sm mb-1">Record Consultation</h3>
+                    <p className="font-body text-xs text-warm-gray mb-3 max-w-md">
+                      for <span className="font-semibold text-primary-600">{patient?.name}</span> in <span className="font-semibold text-primary-600">{LANGUAGES[consultLang]?.labelEn || consultLang}</span>
+                    </p>
+                    <button onClick={startRecording} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-heading font-bold text-xs hover:from-primary-600 hover:to-primary-700 transition-all shadow-sm mb-3">
+                      <Mic size={14} /> Start Recording
+                    </button>
+                    <div className="flex items-center gap-2.5 flex-wrap justify-center">
+                      {[
+                        { icon: Stethoscope, label: 'SOAP Notes' },
+                        { icon: Pill, label: 'Medications' },
+                        { icon: Languages, label: 'Sarvam STT' },
+                      ].map(({ icon: I, label }) => (
+                        <span key={label} className="inline-flex items-center gap-1 text-[10px] text-warm-gray bg-gray-50 border border-gray-100 px-2 py-1 rounded-full font-body font-medium"><I size={10} />{label}</span>
                       ))}
                     </div>
-                  </div>
-
-                  {/* Live transcript panel */}
-                  <div className="bg-white/90 rounded-xl border border-gray-200/60 shadow-sm px-4 py-3 min-h-[80px] max-h-[200px] overflow-y-auto">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <FileText size={11} className="text-primary-400" />
-                      <p className="text-[10px] uppercase tracking-widest text-warm-gray/60 font-heading font-semibold">
-                        Live Transcript
-                      </p>
-                      {liveTranscript && (
-                        <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 font-heading font-medium border border-green-100 animate-pulse">
-                          Live
-                        </span>
-                      )}
-                    </div>
-                    {liveTranscript ? (
-                      <p className="font-body text-xs text-dark leading-relaxed whitespace-pre-wrap">{liveTranscript}</p>
-                    ) : (
-                      <p className="font-body text-xs text-warm-gray/40 italic">
-                        Start speaking — text will appear here in real time...
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <p className="text-[10px] text-warm-gray/50 font-body">
-                  Live preview uses browser STT — also used as fallback if backend audio processing fails
-                </p>
-
-                <button onClick={stopRecording} className="mt-2 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-500 text-white font-heading font-bold text-xs hover:bg-red-600 transition-all">
-                  <Square size={12} fill="white" /> Stop Recording
-                </button>
+                    <p className="text-[10px] text-warm-gray/60 font-body mt-2 max-w-sm">
+                      Speak in your language — audio waveform shown during recording, accurate transcription by Sarvam AI after stop.
+                    </p>
+                  </>
+                )}
               </div>
-            ) : (
-              <>
-                <h3 className="font-heading font-bold text-dark text-sm mb-1">Record Consultation</h3>
-                <p className="font-body text-xs text-warm-gray mb-3 max-w-md">
-                  for <span className="font-semibold text-primary-600">{patient?.name}</span> in <span className="font-semibold text-primary-600">{LANGUAGES[consultLang]?.labelEn || consultLang}</span>
-                </p>
-                <button onClick={startRecording} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-heading font-bold text-xs hover:from-primary-600 hover:to-primary-700 transition-all shadow-sm mb-3">
-                  <Mic size={14} /> Start Recording
-                </button>
-                <div className="flex items-center gap-2.5 flex-wrap justify-center">
-                  {[
-                    { icon: Stethoscope, label: 'SOAP Notes' },
-                    { icon: Pill, label: 'Medications' },
-                    { icon: Languages, label: 'Sarvam STT' },
-                  ].map(({ icon: I, label }) => (
-                    <span key={label} className="inline-flex items-center gap-1 text-[10px] text-warm-gray bg-gray-50 border border-gray-100 px-2 py-1 rounded-full font-body font-medium"><I size={10} />{label}</span>
-                  ))}
+            </div>
+          )}
+
+          {/* Type Mode */}
+          {inputMode === 'type' && (
+            <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 hover:border-primary-300 transition-all overflow-hidden">
+              <div className="px-6 py-6">
+                <div className="text-center mb-4">
+                  <h3 className="font-heading font-bold text-dark text-sm mb-1">Type Consultation Notes</h3>
+                  <p className="font-body text-xs text-warm-gray max-w-md mx-auto">
+                    for <span className="font-semibold text-primary-600">{patient?.name}</span> in <span className="font-semibold text-primary-600">{LANGUAGES[consultLang]?.labelEn || consultLang}</span>
+                  </p>
                 </div>
-                <p className="text-[10px] text-warm-gray/60 font-body mt-2 max-w-sm">
-                  Speak in your language — audio waveform shown during recording, accurate transcription by Sarvam AI after stop.
+
+                <textarea
+                  value={typedNotes}
+                  onChange={(e) => setTypedNotes(e.target.value)}
+                  placeholder="Type your consultation notes here...&#10;&#10;Example:&#10;Patient complains of headache and mild fever since 2 days. No vomiting. BP 120/80. Prescribed Paracetamol 500mg twice daily for 3 days. Advised rest and plenty of fluids."
+                  className="w-full min-h-[200px] max-h-[400px] p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-body text-dark placeholder:text-warm-gray/40 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-300 resize-y leading-relaxed"
+                />
+
+                <div className="flex items-center justify-between mt-4">
+                  <div className="flex items-center gap-2.5">
+                    {[
+                      { icon: Stethoscope, label: 'SOAP Notes' },
+                      { icon: Pill, label: 'Medications' },
+                    ].map(({ icon: I, label }) => (
+                      <span key={label} className="inline-flex items-center gap-1 text-[10px] text-warm-gray bg-gray-50 border border-gray-100 px-2 py-1 rounded-full font-body font-medium"><I size={10} />{label}</span>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={handleSubmitText}
+                    disabled={!typedNotes.trim()}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-heading font-bold text-xs hover:from-primary-600 hover:to-primary-700 transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Send size={14} /> Generate SOAP Notes
+                  </button>
+                </div>
+
+                <p className="text-[10px] text-warm-gray/60 font-body mt-3 text-center">
+                  Type your consultation notes and AI will generate structured SOAP notes, extract medications, and create patient instructions.
                 </p>
-              </>
-            )}
-          </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -518,8 +635,12 @@ export default function ConsultPanel({ patient, onConsultationComplete }) {
           <Disclaimer />
 
           <div className="flex gap-3">
-            <button onClick={() => window.print()} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary-500 text-white font-heading font-bold text-xs hover:bg-primary-600 transition-all shadow-sm">
-              <Printer size={14} /> Print Notes
+            <button onClick={() => generatePatientPDF({
+              patient,
+              doctor: user?.profile || {},
+              consultations: [{ ...result, date: new Date().toISOString() }],
+            })} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary-500 text-white font-heading font-bold text-xs hover:bg-primary-600 transition-all shadow-sm">
+              <Printer size={14} /> Download Prescription
             </button>
             <button onClick={handleReset} className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl border-2 border-primary-500 text-primary-600 font-heading font-semibold text-xs hover:bg-primary-50 transition-all">
               <RotateCcw size={14} /> New Session

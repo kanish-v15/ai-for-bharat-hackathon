@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, FileText, Heart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import AbhaLinkFlow from '../components/profile/AbhaLinkFlow';
 import PatientProfileForm from '../components/profile/PatientProfileForm';
 import DoctorProfileForm from '../components/profile/DoctorProfileForm';
 
 export default function ProfileSetup() {
   const { user, updateProfile, linkAbha } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [phase, setPhase] = useState('choice'); // 'choice' | 'abha' | 'form'
   const [prefilledData, setPrefilledData] = useState(null);
@@ -37,9 +39,9 @@ export default function ProfileSetup() {
           <div className="w-16 h-16 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto mb-4 ring-4 ring-primary-100">
             <Heart size={28} className="text-primary-500" />
           </div>
-          <h1 className="font-display text-2xl text-dark">Complete Your Profile</h1>
+          <h1 className="font-display text-2xl text-dark">{t('profileSetup.completeProfile')}</h1>
           <p className="font-body text-sm text-warm-gray mt-1">
-            Fill in your details to start using SwasthyaMitra
+            {t('profileSetup.fillDetails')}
           </p>
         </div>
         <DoctorProfileForm
@@ -62,9 +64,9 @@ export default function ProfileSetup() {
             <div className="w-16 h-16 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto mb-4 ring-4 ring-primary-100">
               <Heart size={28} className="text-primary-500" />
             </div>
-            <h1 className="font-display text-2xl text-dark">Complete Your Profile</h1>
+            <h1 className="font-display text-2xl text-dark">{t('profileSetup.completeProfile')}</h1>
             <p className="font-body text-sm text-warm-gray mt-1">
-              Choose how you'd like to set up your health profile
+              {t('profileSetup.completeProfileDesc')}
             </p>
           </div>
 
@@ -79,12 +81,12 @@ export default function ProfileSetup() {
                   <Shield size={22} className="text-primary-500" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-heading font-bold text-dark text-sm">Link ABHA ID</h3>
+                  <h3 className="font-heading font-bold text-dark text-sm">{t('profileSetup.linkAbha')}</h3>
                   <p className="font-body text-xs text-warm-gray mt-1">
-                    Auto-fill your profile using Ayushman Bharat Health Account. Fast and secure.
+                    {t('profileSetup.linkAbhaDesc')}
                   </p>
                   <span className="inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full bg-india-green/10 text-india-green font-heading font-semibold">
-                    Recommended
+                    {t('profileSetup.recommended')}
                   </span>
                 </div>
               </div>
@@ -100,9 +102,9 @@ export default function ProfileSetup() {
                   <FileText size={22} className="text-amber-500" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-heading font-bold text-dark text-sm">Fill Manually</h3>
+                  <h3 className="font-heading font-bold text-dark text-sm">{t('profileSetup.fillManually')}</h3>
                   <p className="font-body text-xs text-warm-gray mt-1">
-                    Type or use voice to fill each field. You can link ABHA later from your profile.
+                    {t('profileSetup.fillManuallyDesc')}
                   </p>
                 </div>
               </div>
@@ -124,11 +126,11 @@ export default function ProfileSetup() {
       {phase === 'form' && (
         <div className="animate-slide-up">
           <div className="text-center mb-6">
-            <h1 className="font-display text-2xl text-dark">Your Health Profile</h1>
+            <h1 className="font-display text-2xl text-dark">{t('profileSetup.yourHealthProfile')}</h1>
             <p className="font-body text-sm text-warm-gray mt-1">
               {prefilledData
-                ? 'We pre-filled some fields from your ABHA record. Complete the rest.'
-                : 'Fill in your details — use voice or type manually'}
+                ? t('profileSetup.prefilledNote')
+                : t('profileSetup.manualNote')}
             </p>
           </div>
           <PatientProfileForm

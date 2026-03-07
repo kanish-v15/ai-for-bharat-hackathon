@@ -110,4 +110,20 @@ export async function getUserHistory(userId = 'demo-user') {
   return data;
 }
 
+// Auth OTP API
+export async function sendOtp(phone) {
+  const { data } = await api.post('/auth/send-otp', { phone });
+  return data;
+}
+
+export async function verifyOtp(phone, otp) {
+  const { data } = await api.post('/auth/verify-otp', { phone, otp });
+  return data;
+}
+
+export async function resendOtp(phone) {
+  const { data } = await api.post('/auth/resend-otp', { phone });
+  return data;
+}
+
 export default api;

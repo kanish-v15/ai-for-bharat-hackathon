@@ -5,9 +5,23 @@ from app.services.cognito_service import (
     sign_up, confirm_sign_up, sign_in, refresh_tokens,
     get_user_info, forgot_password, confirm_forgot_password, sign_out,
 )
+from app.services.sns_otp_service import send_otp, verify_otp, resend_otp
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
+
+# ── OTP Models ─────────────────────────────────────────────────────
+
+class SendOtpRequest(BaseModel):
+    phone: str  # 10-digit Indian mobile number
+
+
+class VerifyOtpRequest(BaseModel):
+    phone: str
+    otp: str
+
+
+# ── Cognito Models ─────────────────────────────────────────────────
 
 class SignUpRequest(BaseModel):
     username: str
@@ -40,6 +54,37 @@ class ResetPasswordRequest(BaseModel):
     code: str
     new_password: str
 
+
+# ── OTP Endpoints (SMS via AWS SNS) ────────────────────────────────
+
+@router.post("/send-otp")
+async def api_send_otp(request: SendOtpRequest):
+    """Send a 6-digit OTP to the given Indian mobile number via AWS SNS."""
+    result = await send_otp(request.phone)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.post("/verify-otp")
+async def api_verify_otp(request: VerifyOtpRequest):
+    """Verify the OTP entered by the user."""
+    result = await verify_otp(request.phone, request.otp)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.post("/resend-otp")
+async def api_resend_otp(request: SendOtpRequest):
+    """Resend a new OTP to the given phone number."""
+    result = await resend_otp(request.phone)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+# ── Cognito Endpoints ──────────────────────────────────────────────
 
 @router.post("/signup")
 async def register(request: SignUpRequest):
