@@ -6,11 +6,12 @@ import PatientProfileForm from '../components/profile/PatientProfileForm';
 import DoctorProfileForm from '../components/profile/DoctorProfileForm';
 import AbhaLinkFlow from '../components/profile/AbhaLinkFlow';
 import { getInteractions } from '../services/dataStore';
+import DocumentViewer from '../components/DocumentViewer';
 import {
   User, Heart, FileText, Shield, Building2, Briefcase, Phone, Mail,
   CheckCircle, Droplets, AlertTriangle, Pill, Activity, Calendar,
   ChevronDown, ChevronUp, Edit3, MapPin, UserCheck, Stethoscope,
-  Clock, IndianRupee, Languages, BadgeCheck, GraduationCap,
+  Clock, IndianRupee, Languages, BadgeCheck, GraduationCap, Eye,
 } from 'lucide-react';
 
 /* ── Tab Configurations ── */
@@ -204,6 +205,7 @@ function DoctorPracticeTab({ profile }) {
 function DocumentsTab() {
   const reports = getInteractions('lab_report') || [];
   const [expandedId, setExpandedId] = useState(null);
+  const [viewingDoc, setViewingDoc] = useState(null);
 
   if (reports.length === 0) {
     return (
@@ -220,33 +222,65 @@ function DocumentsTab() {
   }
 
   return (
-    <div className="space-y-3">
-      {reports.map((report) => (
-        <div key={report.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <button
-            onClick={() => setExpandedId(expandedId === report.id ? null : report.id)}
-            className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition-colors"
-          >
-            <div className="w-9 h-9 bg-primary-50 rounded-lg flex items-center justify-center shrink-0">
-              <FileText size={16} className="text-primary-500" />
+    <>
+      <div className="space-y-3">
+        {reports.map((report) => (
+          <div key={report.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="flex items-center gap-3 p-4">
+              <button
+                onClick={() => setExpandedId(expandedId === report.id ? null : report.id)}
+                className="flex items-center gap-3 flex-1 min-w-0 text-left hover:bg-gray-50 transition-colors rounded-lg"
+              >
+                <div className="w-9 h-9 bg-primary-50 rounded-lg flex items-center justify-center shrink-0">
+                  <FileText size={16} className="text-primary-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-heading font-bold text-sm text-dark truncate">{report.data?.fileName || report.title || 'Lab Report'}</p>
+                  <p className="text-[11px] text-gray-500 font-body">
+                    {report.date ? new Date(report.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                    {report.data?.parameters && ` · ${report.data.parameters.length} parameters`}
+                  </p>
+                </div>
+                {expandedId === report.id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+              </button>
+              {report.data?.fileDataUrl && (
+                <button
+                  onClick={() => setViewingDoc({ fileDataUrl: report.data.fileDataUrl, fileType: report.data.fileType, fileName: report.data.fileName })}
+                  className="p-2 rounded-lg text-saffron-500 hover:bg-saffron-50 transition-colors shrink-0"
+                  title="View Original Document"
+                >
+                  <Eye size={16} />
+                </button>
+              )}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-heading font-bold text-sm text-dark truncate">{report.title || 'Lab Report'}</p>
-              <p className="text-[11px] text-gray-500 font-body">
-                {report.date ? new Date(report.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
-                {report.data?.parameters && ` · ${report.data.parameters.length} parameters`}
-              </p>
-            </div>
-            {expandedId === report.id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
-          </button>
-          {expandedId === report.id && report.summary && (
-            <div className="px-4 pb-4 border-t border-gray-100">
-              <p className="text-xs font-body text-gray-500 mt-3 leading-relaxed">{report.summary}</p>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
+            {expandedId === report.id && (
+              <div className="px-4 pb-4 border-t border-gray-100">
+                {report.data?.fileDataUrl && (
+                  <button
+                    onClick={() => setViewingDoc({ fileDataUrl: report.data.fileDataUrl, fileType: report.data.fileType, fileName: report.data.fileName })}
+                    className="mt-3 mb-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-saffron-50 text-saffron-600 rounded-lg text-xs font-medium hover:bg-saffron-100 transition-colors"
+                  >
+                    <Eye size={14} /> View Original Document
+                  </button>
+                )}
+                {report.summary && (
+                  <p className="text-xs font-body text-gray-500 mt-2 leading-relaxed">{report.summary}</p>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {viewingDoc && (
+        <DocumentViewer
+          fileDataUrl={viewingDoc.fileDataUrl}
+          fileType={viewingDoc.fileType}
+          fileName={viewingDoc.fileName}
+          onClose={() => setViewingDoc(null)}
+        />
+      )}
+    </>
   );
 }
 

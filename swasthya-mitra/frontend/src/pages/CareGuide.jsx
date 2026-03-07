@@ -300,31 +300,77 @@ export default function CareGuide() {
   };
 
   /* Load a previous report context into chat */
-  const loadReport = (report) => {
+  const loadReport = async (report) => {
     const params = report.data?.parameters || [];
     const flagged = params.filter(p => p.classification !== 'Normal');
     const summary = report.data?.summary || '';
+    const docName = report.data?.fileName || report.title || 'Lab Report';
+    setShowDocs(false);
+
+    // Add user message showing which report was selected
     setMessages(prev => [...prev, {
-      role: 'assistant',
-      text: `${t('careGuide.labReportLoaded') || 'Lab report loaded'}: ${report.title}\n${flagged.length > 0 ? `${flagged.length} ${t('careGuide.flaggedParams')}` : t('careGuide.allNormal') || 'All normal'}\n\n${summary}\n\n${t('careGuide.askAboutReport') || 'Ask me anything about this report.'}`,
+      role: 'user',
+      text: docName,
       timestamp: new Date(),
     }]);
-    setShowDocs(false);
     scrollToBottom();
+
+    // Send the summary through Care Guide so AI responds in user's language with audio
+    const contextPrompt = `Here is my lab report "${docName}" with ${params.length} parameters (${flagged.length} flagged):\n\n${summary}\n\nPlease explain this lab report summary to me in simple words.`;
+
+    setIsLoading(true);
+    try {
+      const data = await askCareGuideText(contextPrompt, language, 'demo-user', sessionId);
+      handleResponse(data);
+    } catch {
+      // Fallback: show stored summary without audio
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        text: summary || 'Could not load report summary.',
+        audio_url: report.data?.audio_url || null,
+        timestamp: new Date(),
+      }]);
+      scrollToBottom();
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   /* Load a prescription context into chat */
-  const loadPrescription = (rx) => {
+  const loadPrescription = async (rx) => {
     const soap = rx.data?.soap_note || {};
     const meds = rx.data?.medications || [];
     const instructions = rx.data?.patient_instructions_translated || rx.data?.patient_instructions || '';
+    const rxTitle = rx.data?.patient_name ? `${rx.data.patient_name} consultation` : rx.title;
+    setShowDocs(false);
+
+    // Add user message
     setMessages(prev => [...prev, {
-      role: 'assistant',
-      text: `**${t('labSamjho.prescriptions') || 'Prescription'}:** ${rx.title}\n\n**${t('medscribe.assessment') || 'Assessment'}:** ${soap.assessment || 'N/A'}\n**${t('medscribe.plan') || 'Plan'}:** ${soap.plan || 'N/A'}\n${meds.length > 0 ? `**${t('medscribe.medications') || 'Medications'}:**\n${meds.map(m => `- ${m.name} ${m.dosage || ''} ${m.frequency || ''}`).join('\n')}` : ''}\n\n${instructions ? `**${t('medscribe.patientInstructions') || 'Instructions'}:** ${instructions}` : ''}\n\n${t('careGuide.askAboutReport') || 'Ask me anything about this.'}`,
+      role: 'user',
+      text: rxTitle,
       timestamp: new Date(),
     }]);
-    setShowDocs(false);
     scrollToBottom();
+
+    // Build context and send through Care Guide for language + audio
+    const medsText = meds.map(m => `${m.name} ${m.dosage || ''} ${m.frequency || ''}`).join(', ');
+    const contextPrompt = `Here is my prescription:\nAssessment: ${soap.assessment || 'N/A'}\nPlan: ${soap.plan || 'N/A'}\nMedications: ${medsText || 'None'}\nInstructions: ${instructions || 'None'}\n\nPlease explain this prescription to me in simple words.`;
+
+    setIsLoading(true);
+    try {
+      const data = await askCareGuideText(contextPrompt, language, 'demo-user', sessionId);
+      handleResponse(data);
+    } catch {
+      // Fallback: show stored text
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        text: `Assessment: ${soap.assessment || 'N/A'}\nPlan: ${soap.plan || 'N/A'}\n${medsText ? `Medications: ${medsText}` : ''}\n${instructions ? `Instructions: ${instructions}` : ''}`,
+        timestamp: new Date(),
+      }]);
+      scrollToBottom();
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
@@ -641,27 +687,30 @@ export default function CareGuide() {
                 <p className="text-xs text-gray-400 font-body">{t('labSamjho.noReports') || 'No lab reports yet'}</p>
                 <p className="text-[10px] text-gray-400 font-body mt-1">{t('careGuide.uploadFromLabSamjho') || 'Upload from Lab Samjho page'}</p>
               </div>
-            ) : labReports.slice(0, 15).map((r) => (
-              <div key={r.id} className="flex items-center gap-2 p-2.5 rounded-xl hover:bg-primary-50 transition-colors group mb-1">
-                <button onClick={() => loadReport(r)} className="flex items-center gap-2.5 flex-1 min-w-0 text-left">
-                  <div className="w-9 h-9 bg-sky-50 rounded-lg flex items-center justify-center shrink-0 border border-sky-100">
-                    <FileText size={15} className="text-sky-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-heading font-semibold text-dark truncate">{r.title}</p>
-                    <p className="text-[9px] font-body text-gray-400">{new Date(r.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}</p>
-                  </div>
-                  <ChevronRight size={12} className="text-gray-300 group-hover:text-primary-500 shrink-0" />
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleDeleteDoc(r.id); }}
-                  className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all shrink-0"
-                  title="Delete"
-                >
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            ))
+            ) : labReports.slice(0, 15).map((r) => {
+              const docName = r.data?.fileName || r.title || 'Lab Report';
+              return (
+                <div key={r.id} className="flex items-center gap-2 p-2.5 rounded-xl hover:bg-primary-50 transition-colors group mb-1">
+                  <button onClick={() => loadReport(r)} className="flex items-center gap-2.5 flex-1 min-w-0 text-left">
+                    <div className="w-9 h-9 bg-sky-50 rounded-lg flex items-center justify-center shrink-0 border border-sky-100">
+                      <FileText size={15} className="text-sky-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-heading font-semibold text-dark truncate">{docName}</p>
+                      <p className="text-[9px] font-body text-gray-400">{new Date(r.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}</p>
+                    </div>
+                    <ChevronRight size={12} className="text-gray-300 group-hover:text-primary-500 shrink-0" />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteDoc(r.id); }}
+                    className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                    title="Delete"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              );
+            })
           ) : (
             prescriptions.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center">

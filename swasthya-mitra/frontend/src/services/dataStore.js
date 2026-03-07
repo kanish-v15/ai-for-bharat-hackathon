@@ -180,17 +180,23 @@ export function seedDemoPatients() {
 function generateTitle(type, data) {
   switch (type) {
     case 'lab_report': {
+      // Prefer file name, then parameter names
+      if (data.fileName) return data.fileName;
       const params = data.parameters || [];
       if (params.length > 0) {
         const names = params.slice(0, 3).map(p => p.name).join(', ');
         return params.length > 3 ? `${names}...` : names;
       }
-      return 'Lab Report Analysis';
+      return 'Lab Report';
     }
     case 'care_guide':
       return (data.answer || data.answer_translated || 'Health Question').substring(0, 60);
-    case 'medscribe':
-      return data.soap_note?.assessment?.substring(0, 60) || 'Consultation Notes';
+    case 'medscribe': {
+      // Show patient name + assessment
+      const patient = data.patient_name || '';
+      const assessment = data.soap_note?.assessment?.substring(0, 40) || 'Consultation';
+      return patient ? `${patient} — ${assessment}` : assessment;
+    }
     default:
       return 'Interaction';
   }

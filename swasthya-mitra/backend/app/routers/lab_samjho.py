@@ -2,8 +2,8 @@ import json
 import uuid
 import io
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
-from app.services.bedrock_service import invoke_model, invoke_model_with_image
-from app.services.textract_service import extract_text_from_image
+from app.services.bedrock_service import invoke_model, invoke_model_with_image, invoke_model_with_images
+from app.services.textract_service import extract_text_from_image, extract_text_from_pdf, extract_tables_from_image
 from app.services.translate_service import translate_text
 from app.services.polly_service import text_to_speech_smart
 from app.services.comprehend_medical_service import detect_entities as cm_detect_entities
@@ -30,31 +30,54 @@ async def analyze_lab_report(
     if len(image_bytes) > 10 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large. Maximum size is 10MB.")
 
-    # Step 1: Extract text using Textract (for additional context)
-    try:
-        extracted_text = extract_text_from_image(image_bytes)
-    except Exception:
-        extracted_text = "Could not extract text from image."
-
-    # Step 2: Analyze with AI (always use vision — convert PDFs to images)
-    prompt = LAB_ANALYSIS_PROMPT.format(extracted_text=extracted_text)
     is_pdf = image.content_type == "application/pdf"
 
-    # Convert PDF to image for vision analysis
-    vision_bytes = image_bytes
-    vision_media_type = image.content_type
+    # Step 1: Extract text using Textract
+    try:
+        if is_pdf:
+            # PDFs require async Textract via S3 (sync API only supports images)
+            extracted_text = extract_text_from_pdf(image_bytes)
+            print(f"[LAB_SAMJHO] PDF text extraction: {len(extracted_text)} chars")
+        else:
+            extracted_text = extract_text_from_image(image_bytes)
+            # Also try table extraction for structured lab data
+            try:
+                tables = extract_tables_from_image(image_bytes)
+                if tables:
+                    table_text = "\n\n--- TABLE DATA ---\n"
+                    for i, table in enumerate(tables):
+                        table_text += f"\nTable {i+1}:\n"
+                        for row_idx in sorted(table.keys()):
+                            row = table[row_idx]
+                            table_text += " | ".join(
+                                row.get(c, "") for c in sorted(row.keys())
+                            ) + "\n"
+                    extracted_text += table_text
+                    print(f"[LAB_SAMJHO] Extracted {len(tables)} tables from image")
+            except Exception as e:
+                print(f"[LAB_SAMJHO] Table extraction failed (non-fatal): {e}")
+    except Exception as e:
+        print(f"[LAB_SAMJHO] Text extraction error: {e}")
+        extracted_text = "Could not extract text from document."
+
+    # Step 2: Analyze with AI
+    prompt = LAB_ANALYSIS_PROMPT.format(extracted_text=extracted_text)
+
+    # For images, use vision model; for PDFs, convert all pages to images
+    pdf_pages = []  # list of (png_bytes, "image/png") tuples
     pdf_converted = False
     if is_pdf:
         try:
             import fitz  # PyMuPDF — lazy import for Lambda compatibility
             doc = fitz.open(stream=image_bytes, filetype="pdf")
-            page = doc[0]  # First page
-            pix = page.get_pixmap(dpi=200)
-            vision_bytes = pix.tobytes("png")
-            vision_media_type = "image/png"
-            pdf_converted = True
+            max_pages = min(len(doc), 10)  # Cap at 10 pages
+            for page_num in range(max_pages):
+                page = doc[page_num]
+                pix = page.get_pixmap(dpi=200)
+                pdf_pages.append((pix.tobytes("png"), "image/png"))
             doc.close()
-            print(f"[LAB_SAMJHO] Converted PDF to PNG: {len(vision_bytes)} bytes")
+            pdf_converted = True
+            print(f"[LAB_SAMJHO] Converted {max_pages} PDF pages to PNG")
         except ImportError:
             print("[LAB_SAMJHO] PyMuPDF not available, using text-only for PDF")
         except Exception as e:
@@ -62,11 +85,14 @@ async def analyze_lab_report(
 
     try:
         if is_pdf and not pdf_converted:
-            # No PyMuPDF available — use text-only analysis with Textract output
+            # No PyMuPDF — use text-only analysis with Textract async output
             raw_response = invoke_model(prompt, system=LAB_ANALYSIS_SYSTEM)
+        elif is_pdf and pdf_converted:
+            # Send ALL PDF pages as images for comprehensive analysis
+            raw_response = invoke_model_with_images(prompt, pdf_pages, system=LAB_ANALYSIS_SYSTEM)
         else:
-            # Use vision model (images or converted PDF)
-            raw_response = invoke_model_with_image(prompt, vision_bytes, vision_media_type, system=LAB_ANALYSIS_SYSTEM)
+            # Single image — use vision model directly
+            raw_response = invoke_model_with_image(prompt, image_bytes, image.content_type, system=LAB_ANALYSIS_SYSTEM)
         # Parse JSON from response
         json_str = raw_response
         if "```json" in json_str:

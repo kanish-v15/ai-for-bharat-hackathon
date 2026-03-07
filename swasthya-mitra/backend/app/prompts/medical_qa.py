@@ -29,6 +29,18 @@ CARE_GUIDE_PROMPT = """Patient's question: {question}
 Previous conversation context:
 {conversation_history}
 
+IMPORTANT: The patient's preferred language is {language}. You MUST respond in {language}.
+- If the language is "english", respond in English.
+- If the language is "hindi", respond in Hindi (Devanagari script).
+- If the language is "tamil", respond in Tamil (தமிழ்).
+- If the language is "telugu", respond in Telugu (తెలుగు).
+- If the language is "kannada", respond in Kannada (ಕನ್ನಡ).
+- If the language is "malayalam", respond in Malayalam (മലയാളം).
+- If the language is "bengali", respond in Bengali (বাংলা).
+- If the language is "marathi", respond in Marathi (मराठी).
+- If the language is "gujarati", respond in Gujarati (ગુજરાતી).
+Even if the patient types in English, ALWAYS respond in their preferred language ({language}).
+
 Respond like a caring family doctor would. Remember:
 - Give practical, actionable advice (foods, home remedies, lifestyle tips)
 - Suggest relevant lab tests if appropriate
@@ -38,7 +50,7 @@ Respond like a caring family doctor would. Remember:
 
 Return your response as JSON:
 {{
-  "answer": "Your helpful response here",
+  "answer": "Your helpful response in {language}",
   "is_emergency": false
 }}"""
 

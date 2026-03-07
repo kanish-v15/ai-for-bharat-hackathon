@@ -43,10 +43,11 @@ async def process_question(question: str, language: str, session_id: str | None)
         except Exception:
             pass
 
-    # Get AI response
+    # Get AI response — pass language so AI responds in user's language directly
     prompt = CARE_GUIDE_PROMPT.format(
         question=question_en,
         conversation_history=history,
+        language=language,
     )
 
     raw = None
@@ -68,12 +69,23 @@ async def process_question(question: str, language: str, session_id: str | None)
         answer = raw if isinstance(raw, str) else "I'm sorry, I couldn't process your question. Please try again."
 
     # Translate answer if not English
+    # The AI now responds in the user's language directly, but we keep translate as fallback
     answer_translated = None
     if language != "english":
+        # The AI should have responded in the target language already
+        # Use the answer directly as translated, and also try AWS Translate as backup
+        answer_translated = answer  # AI already responded in target language
         try:
-            answer_translated = await translate_text(answer, "english", language)
+            # Double-check: if AI responded in English despite being asked for Tamil,
+            # translate it. We detect this by checking if the answer is mostly ASCII.
+            ascii_ratio = sum(1 for c in answer if ord(c) < 128) / max(len(answer), 1)
+            if ascii_ratio > 0.8:
+                # Likely English — translate to target language
+                translated = await translate_text(answer, "english", language)
+                if translated:
+                    answer_translated = translated
         except Exception:
-            answer_translated = answer
+            pass
 
     # Generate audio
     audio_url = None

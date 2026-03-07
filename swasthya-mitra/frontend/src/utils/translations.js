@@ -72,6 +72,8 @@ export const translations = {
       resultReady: 'Here are your lab report results.',
       analysisFailed: 'Analysis failed. Please try again.',
       uploadReport: 'Upload Report',
+      parametersLoaded: 'parameters loaded',
+      newChat: 'New Chat',
     },
     careGuide: {
       title: 'Care Guide',

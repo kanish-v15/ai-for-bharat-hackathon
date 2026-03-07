@@ -62,33 +62,33 @@ async def send_otp(phone: str) -> dict:
         "attempts": 0,
     }
 
-    message = f"Your SwasthyaMitra verification code is: {otp}. Valid for 5 minutes. Do not share this code."
+    # Skip actual SMS — return OTP in response for auto-fill
+    # This avoids SNS SMS costs. For production with real SMS, remove dev_otp from response
+    # and uncomment the SNS publish block below.
+    print(f"[SNS OTP] OTP for {phone_e164}: {otp}")
+    return {"success": True, "message": "OTP sent successfully.", "dev_otp": otp}
 
-    # In development mode, skip actual SMS — return OTP in response for auto-fill
-    if settings.environment == "development":
-        print(f"[SNS OTP] Dev mode — OTP for {phone_e164}: {otp}")
-        return {"success": True, "message": "OTP sent successfully.", "dev_otp": otp}
-
-    # Production: send via AWS SNS
-    try:
-        await asyncio.to_thread(
-            sns_client.publish,
-            PhoneNumber=phone_e164,
-            Message=message,
-            MessageAttributes={
-                "AWS.SNS.SMS.SenderID": {
-                    "DataType": "String",
-                    "StringValue": "SWSMITRA",
-                },
-                "AWS.SNS.SMS.SMSType": {
-                    "DataType": "String",
-                    "StringValue": "Transactional",
-                },
-            },
-        )
-        return {"success": True, "message": "OTP sent successfully."}
-    except Exception as e:
-        return {"error": f"Failed to send OTP: {str(e)}"}
+    # # Production: send via AWS SNS (uncomment when ready for real SMS)
+    # message = f"Your SwasthyaMitra verification code is: {otp}. Valid for 5 minutes. Do not share this code."
+    # try:
+    #     await asyncio.to_thread(
+    #         sns_client.publish,
+    #         PhoneNumber=phone_e164,
+    #         Message=message,
+    #         MessageAttributes={
+    #             "AWS.SNS.SMS.SenderID": {
+    #                 "DataType": "String",
+    #                 "StringValue": "SWSMITRA",
+    #             },
+    #             "AWS.SNS.SMS.SMSType": {
+    #                 "DataType": "String",
+    #                 "StringValue": "Transactional",
+    #             },
+    #         },
+    #     )
+    #     return {"success": True, "message": "OTP sent successfully."}
+    # except Exception as e:
+    #     return {"error": f"Failed to send OTP: {str(e)}"}
 
 
 async def verify_otp(phone: str, otp: str) -> dict:

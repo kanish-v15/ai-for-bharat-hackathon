@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   Upload, Send, Mic, MicOff, FileText, AlertTriangle, CheckCircle,
-  Paperclip, Trash2, ChevronRight, Stethoscope, X, FileScan, Plus, Square,
+  Paperclip, Trash2, ChevronRight, Stethoscope, X, FileScan, Plus, Square, Eye,
 } from 'lucide-react';
+import DocumentViewer from '../components/DocumentViewer';
 import { useLanguage } from '../context/LanguageContext';
 import { useNotifications } from '../context/NotificationContext';
 import { analyzeLabReport, askLabQuestion } from '../services/api';
@@ -84,6 +85,7 @@ export default function LabSamjho() {
   const [messages, setMessages] = useState([]);
   const [textInput, setTextInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [viewingDoc, setViewingDoc] = useState(null);
   const [activeAnalysis, setActiveAnalysis] = useState(null);
   const [showDocs, setShowDocs] = useState(false);
   const [docTab, setDocTab] = useState('reports');
@@ -131,6 +133,13 @@ export default function LabSamjho() {
       return;
     }
 
+    // Read file as base64 for inline viewing later
+    const fileDataUrl = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.readAsDataURL(file);
+    });
+
     const previewUrl = file.type !== 'application/pdf' ? URL.createObjectURL(file) : null;
     setMessages(prev => [...prev, {
       role: 'user', text: `${t('labSamjho.uploadReport')}: ${file.name}`, file: { name: file.name, type: file.type, previewUrl }, timestamp: new Date(),
@@ -141,7 +150,7 @@ export default function LabSamjho() {
     try {
       const data = await analyzeLabReport(file, language);
       setActiveAnalysis(data);
-      saveInteraction('lab_report', data);
+      saveInteraction('lab_report', { ...data, fileDataUrl, fileType: file.type, fileName: file.name });
       const flagged = data.parameters?.filter(p => p.classification !== 'Normal').length || 0;
       addNotification(t('labSamjho.analysisComplete'), `${data.parameters?.length || 0} ${t('labSamjho.parameter')}, ${flagged} ${t('labSamjho.flagged')}`, flagged > 0 ? 'warning' : 'success', '/lab-samjho');
       setMessages(prev => [...prev, {
@@ -530,28 +539,44 @@ export default function LabSamjho() {
                   {t('labSamjho.uploadReport')}
                 </button>
               </div>
-            ) : labReports.slice(0, 15).map((r) => (
-              <div key={r.id} className="flex items-center gap-2 p-2.5 rounded-xl hover:bg-primary-50 transition-colors group mb-1">
-                <button onClick={() => { loadReport(r); setShowDocs(false); }}
-                  className="flex items-center gap-2.5 flex-1 min-w-0 text-left">
-                  <div className="w-9 h-9 bg-sky-50 rounded-lg flex items-center justify-center shrink-0 border border-sky-100">
-                    <FileText size={15} className="text-sky-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-heading font-semibold text-dark truncate">{r.title}</p>
-                    <p className="text-[9px] font-body text-gray-400">{new Date(r.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}</p>
-                  </div>
-                  <ChevronRight size={12} className="text-gray-300 group-hover:text-primary-500 shrink-0" />
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleDeleteDoc(r.id); }}
-                  className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all shrink-0"
-                  title="Delete"
-                >
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            ))
+            ) : labReports.slice(0, 15).map((r) => {
+              const docName = r.data?.fileName || r.title || 'Lab Report';
+              const paramCount = r.data?.parameters?.length || 0;
+              return (
+                <div key={r.id} className="flex items-center gap-2 p-2.5 rounded-xl hover:bg-primary-50 transition-colors group mb-1">
+                  <button onClick={() => { loadReport(r); setShowDocs(false); }}
+                    className="flex items-center gap-2.5 flex-1 min-w-0 text-left">
+                    <div className="w-9 h-9 bg-sky-50 rounded-lg flex items-center justify-center shrink-0 border border-sky-100">
+                      <FileText size={15} className="text-sky-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-heading font-semibold text-dark truncate">{docName}</p>
+                      <p className="text-[9px] font-body text-gray-400">
+                        {new Date(r.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                        {paramCount > 0 && ` · ${paramCount} parameters`}
+                      </p>
+                    </div>
+                    <ChevronRight size={12} className="text-gray-300 group-hover:text-primary-500 shrink-0" />
+                  </button>
+                  {r.data?.fileDataUrl && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setViewingDoc({ fileDataUrl: r.data.fileDataUrl, fileType: r.data.fileType, fileName: r.data.fileName }); }}
+                      className="p-1.5 rounded-lg text-gray-300 hover:text-saffron-500 hover:bg-saffron-50 opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                      title="View Document"
+                    >
+                      <Eye size={13} />
+                    </button>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteDoc(r.id); }}
+                    className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                    title="Delete"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              );
+            })
           ) : (
             prescriptions.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center">
@@ -560,31 +585,51 @@ export default function LabSamjho() {
                 </div>
                 <p className="text-xs text-gray-400 font-body">{t('labSamjho.noPrescriptions')}</p>
               </div>
-            ) : prescriptions.slice(0, 15).map((rx) => (
-              <div key={rx.id} className="flex items-center gap-2 p-2.5 rounded-xl hover:bg-emerald-50 transition-colors group mb-1">
-                <button onClick={() => { loadPrescription(rx); setShowDocs(false); }}
-                  className="flex items-center gap-2.5 flex-1 min-w-0 text-left">
-                  <div className="w-9 h-9 bg-emerald-50 rounded-lg flex items-center justify-center shrink-0 border border-emerald-100">
-                    <Stethoscope size={15} className="text-emerald-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-heading font-semibold text-dark truncate">{rx.title}</p>
-                    <p className="text-[9px] font-body text-gray-400">{new Date(rx.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}</p>
-                  </div>
-                  <ChevronRight size={12} className="text-gray-300 group-hover:text-emerald-500 shrink-0" />
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleDeleteDoc(rx.id); }}
-                  className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all shrink-0"
-                  title="Delete"
-                >
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            ))
+            ) : prescriptions.slice(0, 15).map((rx) => {
+              const patientName = rx.data?.patient_name || '';
+              const assessment = rx.data?.soap_note?.assessment || 'Consultation';
+              const meds = rx.data?.medications?.length || 0;
+              return (
+                <div key={rx.id} className="flex items-center gap-2 p-2.5 rounded-xl hover:bg-emerald-50 transition-colors group mb-1">
+                  <button onClick={() => { loadPrescription(rx); setShowDocs(false); }}
+                    className="flex items-center gap-2.5 flex-1 min-w-0 text-left">
+                    <div className="w-9 h-9 bg-emerald-50 rounded-lg flex items-center justify-center shrink-0 border border-emerald-100">
+                      <Stethoscope size={15} className="text-emerald-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-heading font-semibold text-dark truncate">
+                        {patientName ? `${patientName} — ${assessment}` : assessment}
+                      </p>
+                      <p className="text-[9px] font-body text-gray-400">
+                        {new Date(rx.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                        {meds > 0 && ` · ${meds} medications`}
+                      </p>
+                    </div>
+                    <ChevronRight size={12} className="text-gray-300 group-hover:text-emerald-500 shrink-0" />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteDoc(rx.id); }}
+                    className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                    title="Delete"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              );
+            })
           )}
         </div>
       </div>
+
+      {/* Document Viewer Modal */}
+      {viewingDoc && (
+        <DocumentViewer
+          fileDataUrl={viewingDoc.fileDataUrl}
+          fileType={viewingDoc.fileType}
+          fileName={viewingDoc.fileName}
+          onClose={() => setViewingDoc(null)}
+        />
+      )}
     </div>
   );
 }

@@ -31,29 +31,35 @@ def invoke_model(prompt: str, system: str = "", max_tokens: int = 4096) -> str:
 
 
 def invoke_model_with_image(prompt: str, image_bytes: bytes, media_type: str, system: str = "") -> str:
-    """Invoke Amazon Nova Lite with image input."""
-    fmt_map = {"image/jpeg": "jpeg", "image/png": "png", "image/gif": "gif", "image/webp": "webp"}
-    img_format = fmt_map.get(media_type, "png")
-    image_b64 = base64.b64encode(image_bytes).decode("utf-8")
+    """Invoke Amazon Nova Lite with a single image input."""
+    return invoke_model_with_images(prompt, [(image_bytes, media_type)], system=system)
 
-    messages = [
-        {
-            "role": "user",
-            "content": [
-                {
-                    "image": {
-                        "format": img_format,
-                        "source": {"bytes": image_b64},
-                    }
-                },
-                {"text": prompt},
-            ],
-        }
-    ]
+
+def invoke_model_with_images(prompt: str, images: list[tuple[bytes, str]], system: str = "", max_tokens: int = 4096) -> str:
+    """Invoke Amazon Nova Lite with one or more images.
+
+    Args:
+        images: list of (image_bytes, media_type) tuples
+    """
+    fmt_map = {"image/jpeg": "jpeg", "image/png": "png", "image/gif": "gif", "image/webp": "webp"}
+
+    content = []
+    for img_bytes, media_type in images:
+        img_format = fmt_map.get(media_type, "png")
+        image_b64 = base64.b64encode(img_bytes).decode("utf-8")
+        content.append({
+            "image": {
+                "format": img_format,
+                "source": {"bytes": image_b64},
+            }
+        })
+    content.append({"text": prompt})
+
+    messages = [{"role": "user", "content": content}]
 
     body = {
         "messages": messages,
-        "inferenceConfig": {"maxTokens": 4096},
+        "inferenceConfig": {"maxTokens": max_tokens},
     }
     if system:
         body["system"] = [{"text": system}]
