@@ -43,6 +43,7 @@ async def analyze_lab_report(
     # Convert PDF to image for vision analysis
     vision_bytes = image_bytes
     vision_media_type = image.content_type
+    pdf_converted = False
     if is_pdf:
         try:
             import fitz  # PyMuPDF — lazy import for Lambda compatibility
@@ -51,6 +52,7 @@ async def analyze_lab_report(
             pix = page.get_pixmap(dpi=200)
             vision_bytes = pix.tobytes("png")
             vision_media_type = "image/png"
+            pdf_converted = True
             doc.close()
             print(f"[LAB_SAMJHO] Converted PDF to PNG: {len(vision_bytes)} bytes")
         except ImportError:
@@ -59,8 +61,12 @@ async def analyze_lab_report(
             print(f"[LAB_SAMJHO] PDF conversion failed: {e}")
 
     try:
-        # Always use vision model for best results
-        raw_response = invoke_model_with_image(prompt, vision_bytes, vision_media_type, system=LAB_ANALYSIS_SYSTEM)
+        if is_pdf and not pdf_converted:
+            # No PyMuPDF available — use text-only analysis with Textract output
+            raw_response = invoke_model(prompt, system=LAB_ANALYSIS_SYSTEM)
+        else:
+            # Use vision model (images or converted PDF)
+            raw_response = invoke_model_with_image(prompt, vision_bytes, vision_media_type, system=LAB_ANALYSIS_SYSTEM)
         # Parse JSON from response
         json_str = raw_response
         if "```json" in json_str:
