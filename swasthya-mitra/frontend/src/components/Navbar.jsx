@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Heart, Globe, ChevronDown, Menu, X } from 'lucide-react';
+import { Globe, ChevronDown, Menu, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import Logo from './Logo';
 
 const NAV_LINKS = [
   { href: '#home', label: 'Home' },
@@ -46,10 +47,8 @@ export default function Navbar() {
       <div className="flex items-center justify-between px-6 py-3">
         {/* Logo */}
         <NavLink to="/" className="flex items-center gap-2.5">
-          <div className="w-9 h-9 bg-saffron-500 rounded-xl flex items-center justify-center text-white">
-            <Heart size={18} fill="currentColor" />
-          </div>
-          <span className="font-display font-bold text-lg text-dark">SwasthyaMitra</span>
+          <Logo size={42} />
+          <span className="font-display font-bold text-lg"><span className="text-saffron-500">Swasthya</span><span className="text-india-green">Mitra</span></span>
         </NavLink>
 
         {/* Desktop Nav */}

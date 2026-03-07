@@ -305,3 +305,129 @@ body {
 .accent-bar-teal { border-left: 3px solid #0D6E6E; }
 .accent-bar-amber { border-left: 3px solid #F59E0B; }
 .accent-bar-rose { border-left: 3px solid #F43F5E; }
+
+/* ── 3D Card System ── */
+.card-3d-parent {
+  perspective: 800px;
+}
+
+.card-3d {
+  transition: all 0.5s ease-in-out;
+  transform-style: preserve-3d;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-3d::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: inherit;
+  border-top-right-radius: 60%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  transform: translate3d(0, 0, 1px);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.card-3d:hover {
+  transform: rotate3d(1, 1, 0, 5deg);
+  box-shadow:
+    rgba(0, 0, 0, 0.08) 15px 25px 20px -15px,
+    rgba(0, 0, 0, 0.04) 0px 15px 20px -5px;
+}
+
+.card-3d:hover::before {
+  opacity: 1;
+}
+
+/* Saffron variant */
+.card-3d-saffron {
+  transition: all 0.5s ease-in-out;
+  transform-style: preserve-3d;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-3d-saffron::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: inherit;
+  border-top-right-radius: 60%;
+  background: linear-gradient(
+    135deg,
+    rgba(249, 115, 22, 0.08) 0%,
+    rgba(255, 255, 255, 0.12) 50%,
+    transparent 100%
+  );
+  transform: translate3d(0, 0, 1px);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.card-3d-saffron:hover {
+  transform: rotate3d(1, 1, 0, 5deg);
+  box-shadow:
+    rgba(249, 115, 22, 0.12) 15px 25px 20px -15px,
+    rgba(249, 115, 22, 0.06) 0px 15px 20px -5px;
+}
+
+.card-3d-saffron:hover::before {
+  opacity: 1;
+}
+
+/* Dark variant (for dark bg cards) */
+.card-3d-dark {
+  transition: all 0.5s ease-in-out;
+  transform-style: preserve-3d;
+  position: relative;
+}
+
+.card-3d-dark:hover {
+  transform: rotate3d(1, 1, 0, 4deg);
+  box-shadow:
+    rgba(0, 0, 0, 0.3) 20px 30px 25px -20px,
+    rgba(0, 0, 0, 0.15) 0px 20px 25px -5px;
+}
+
+/* Logo circles on hover */
+.card-3d-circles {
+  position: absolute;
+  right: -10px;
+  top: -10px;
+  pointer-events: none;
+}
+
+.card-3d-circle {
+  display: block;
+  position: absolute;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  top: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(2px);
+  transition: all 0.5s ease-in-out;
+}
+
+.card-3d:hover .card-3d-circle:nth-child(1) { transform: translate3d(0, 0, 10px); }
+.card-3d:hover .card-3d-circle:nth-child(2) { transform: translate3d(0, 0, 20px); }
+.card-3d:hover .card-3d-circle:nth-child(3) { transform: translate3d(0, 0, 30px); }
+
+/* Social button lift on parent hover */
+.card-3d:hover .card-3d-lift {
+  transform: translate3d(0, 0, 25px);
+  box-shadow: rgba(0, 0, 0, 0.1) -3px 10px 8px 0px;
+}
+
+.card-3d-lift {
+  transition: transform 0.4s ease-in-out, box-shadow 0.4s ease-in-out;
+}

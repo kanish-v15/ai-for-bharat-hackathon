@@ -1,4 +1,4 @@
-import { Heart } from 'lucide-react';
+import Logo from './Logo';
 
 const SERVICE_LINKS = [
   { label: 'Lab Samjho', href: '#services' },
@@ -26,10 +26,8 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-9 h-9 bg-saffron-500 rounded-xl flex items-center justify-center">
-                <Heart size={18} fill="currentColor" />
-              </div>
-              <span className="font-display font-bold text-lg">SwasthyaMitra</span>
+              <Logo size={42} />
+              <span className="font-display font-bold text-lg"><span className="text-saffron-400">Swasthya</span><span className="text-green-400">Mitra</span></span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed mb-4">
               AI-powered healthcare assistant for every Indian citizen. Breaking language barriers, one conversation at a time.
@@ -74,10 +72,10 @@ export default function Footer() {
 
         <div className="border-t border-gray-800 pt-6 space-y-3">
           <p className="text-sm text-gray-500 text-center">
-            &copy; 2026 SwasthyaMitra. Made with &#10084; in India. All rights reserved.
+            &copy; 2026 <span className="text-saffron-400">Swasthya</span><span className="text-green-400">Mitra</span>. Made with &#10084; in India. All rights reserved.
           </p>
           <p className="text-xs text-gray-600 text-center max-w-2xl mx-auto">
-            Disclaimer: SwasthyaMitra provides AI-assisted health information. Always consult a qualified healthcare professional for medical decisions.
+            Disclaimer: <span className="text-saffron-400">Swasthya</span><span className="text-green-400">Mitra</span> provides AI-assisted health information. Always consult a qualified healthcare professional for medical decisions.
           </p>
         </div>
       </div>

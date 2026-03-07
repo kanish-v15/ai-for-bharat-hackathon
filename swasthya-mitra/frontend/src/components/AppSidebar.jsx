@@ -1,8 +1,9 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Heart, LayoutDashboard, FileText, Mic, Clock,
+import { LayoutDashboard, FileText, Mic, Clock,
          Stethoscope, Languages, HelpCircle, LogOut, X, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import Logo from './Logo';
 
 const PATIENT_NAV = [
   { to: '/patient', icon: LayoutDashboard, labelKey: 'common.dashboard', fallback: 'Dashboard', exact: true },
@@ -46,13 +47,11 @@ export default function AppSidebar({ open, onClose }) {
     <aside className="h-screen w-[248px] bg-surface border-r border-gray-200/60 flex flex-col">
       {/* Logo */}
       <div className="px-5 py-5 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center text-white">
-            <Heart size={15} fill="currentColor" />
-          </div>
+        <div className="flex items-center gap-3">
+          <Logo size={40} />
           <div>
-            <span className="font-heading font-semibold text-dark text-[13px] tracking-tight block leading-tight">SwasthyaMitra</span>
-            <span className="text-[9px] text-warm-gray font-medium tracking-wide uppercase">AI Health</span>
+            <span className="font-heading font-bold text-[15px] tracking-tight block leading-tight"><span className="text-saffron-500">Swasthya</span><span className="text-india-green">Mitra</span></span>
+            <span className="text-[9px] text-warm-gray/60 font-medium tracking-wider uppercase">AI Health Assistant</span>
           </div>
         </div>
         <button onClick={onClose} className="lg:hidden w-7 h-7 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center text-warm-gray">

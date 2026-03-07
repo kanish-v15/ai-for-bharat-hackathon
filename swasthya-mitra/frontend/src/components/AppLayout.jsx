@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Search, Menu } from 'lucide-react';
 import AppSidebar from './AppSidebar';
+import Logo from './Logo';
 import LanguageSelector from './LanguageSelector';
 import NotificationPanel from './NotificationPanel';
 import { useAuth } from '../context/AuthContext';
@@ -87,7 +88,13 @@ export default function AppLayout() {
             >
               <Menu size={16} />
             </button>
-            <div>
+            {/* Logo + name on mobile */}
+            <div className="lg:hidden flex items-center gap-2">
+              <Logo size={32} />
+              <span className="font-heading font-bold text-[13px] tracking-tight"><span className="text-saffron-500">Swasthya</span><span className="text-india-green">Mitra</span></span>
+            </div>
+            {/* Page title on desktop */}
+            <div className="hidden lg:block">
               <h1 className="font-heading font-semibold text-base text-dark tracking-tight">{pageTitle}</h1>
               {pageSubtitle && (
                 <p className="text-[10px] text-warm-gray font-medium mt-0.5">{pageSubtitle}</p>
