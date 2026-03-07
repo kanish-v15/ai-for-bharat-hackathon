@@ -1,7 +1,6 @@
 import json
 import uuid
 import io
-import fitz  # PyMuPDF
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from app.services.bedrock_service import invoke_model, invoke_model_with_image
 from app.services.textract_service import extract_text_from_image
@@ -46,6 +45,7 @@ async def analyze_lab_report(
     vision_media_type = image.content_type
     if is_pdf:
         try:
+            import fitz  # PyMuPDF — lazy import for Lambda compatibility
             doc = fitz.open(stream=image_bytes, filetype="pdf")
             page = doc[0]  # First page
             pix = page.get_pixmap(dpi=200)
@@ -53,6 +53,8 @@ async def analyze_lab_report(
             vision_media_type = "image/png"
             doc.close()
             print(f"[LAB_SAMJHO] Converted PDF to PNG: {len(vision_bytes)} bytes")
+        except ImportError:
+            print("[LAB_SAMJHO] PyMuPDF not available, using text-only for PDF")
         except Exception as e:
             print(f"[LAB_SAMJHO] PDF conversion failed: {e}")
 
