@@ -133,9 +133,22 @@ export function validateField(fieldName, value) {
     if (v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return { valid: false, error: 'Enter a valid email address' };
   }
   if (fieldName === 'dateOfBirth') {
-    const d = new Date(v);
-    if (isNaN(d.getTime())) return { valid: false, error: 'Enter a valid date' };
+    // Support DD/MM/YYYY format
+    const ddmmyyyy = /^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/.exec(v);
+    let d;
+    if (ddmmyyyy) {
+      const [, day, month, year] = ddmmyyyy;
+      d = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      // Verify the date components match (catches invalid dates like 31/02/2000)
+      if (d.getDate() !== parseInt(day) || d.getMonth() !== parseInt(month) - 1) {
+        return { valid: false, error: 'Enter a valid date (DD/MM/YYYY)' };
+      }
+    } else {
+      d = new Date(v);
+    }
+    if (isNaN(d.getTime())) return { valid: false, error: 'Enter a valid date (DD/MM/YYYY)' };
     if (d > new Date()) return { valid: false, error: 'Date cannot be in the future' };
+    if (d < new Date('1900-01-01')) return { valid: false, error: 'Date seems too old' };
   }
   return { valid: true, error: '' };
 }

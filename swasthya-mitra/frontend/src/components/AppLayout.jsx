@@ -47,6 +47,9 @@ export default function AppLayout() {
   const { user } = useAuth();
   const { t } = useLanguage();
 
+  // Hide sidebar on profile-setup for full-width experience
+  const hideSidebar = location.pathname === '/profile-setup';
+
   // Redirect to profile-setup if profile is incomplete
   useEffect(() => {
     if (user && !user.profileComplete && !NO_GUARD_ROUTES.includes(location.pathname)) {
@@ -75,19 +78,21 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-cream flex">
-      <AppSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {!hideSidebar && <AppSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />}
 
       {/* Main content */}
-      <div className="flex-1 lg:ml-[248px] flex flex-col min-h-screen">
+      <div className={`flex-1 ${hideSidebar ? '' : 'lg:ml-[248px]'} flex flex-col min-h-screen`}>
         {/* Top Bar */}
         <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-200/60 px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden w-9 h-9 rounded-lg bg-white flex items-center justify-center text-gray-500 hover:text-primary-500 transition-colors border border-gray-200/60"
-            >
-              <Menu size={16} />
-            </button>
+            {!hideSidebar && (
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden w-9 h-9 rounded-lg bg-white flex items-center justify-center text-gray-500 hover:text-primary-500 transition-colors border border-gray-200/60"
+              >
+                <Menu size={16} />
+              </button>
+            )}
             {/* Logo + name on mobile */}
             <div className="lg:hidden flex items-center gap-2">
               <Logo size={32} />

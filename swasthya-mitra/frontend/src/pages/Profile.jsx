@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { calculateProfileCompletion, FIELD_LABELS } from '../utils/profileHelpers';
-import PatientProfileForm from '../components/profile/PatientProfileForm';
+import PatientProfileForm, { QUESTIONS } from '../components/profile/PatientProfileForm';
 import DoctorProfileForm from '../components/profile/DoctorProfileForm';
 import AbhaLinkFlow from '../components/profile/AbhaLinkFlow';
 import { getInteractions } from '../services/dataStore';
@@ -339,12 +339,86 @@ function AbhaTab({ user, linkAbha, updateProfile }) {
   );
 }
 
+/* ── Edit-mode summary panel for patient ── */
+const EDIT_SUMMARY_SECTIONS = [
+  { title: 'Personal', icon: User, fields: ['fullName', 'dateOfBirth', 'gender', 'email'] },
+  { title: 'Address', icon: MapPin, fields: ['address.district', 'address.state', 'address.pin'] },
+  { title: 'Health', icon: Droplets, fields: ['bloodGroup', 'knownAllergies', 'chronicConditions', 'currentMedications'] },
+  { title: 'Emergency', icon: Phone, fields: ['emergencyContactName', 'emergencyContactPhone'] },
+];
+
+function getVal(obj, path) {
+  return path.split('.').reduce((acc, k) => acc?.[k], obj) ?? '';
+}
+
+function EditSummaryPanel({ formData, lastFilledField }) {
+  const filledCount = QUESTIONS.filter(q => {
+    const v = getVal(formData, q.field);
+    return v && (typeof v !== 'string' || v.trim());
+  }).length;
+
+  return (
+    <div className="h-full flex flex-col">
+      <div className="px-5 pt-5 pb-4 border-b border-gray-200">
+        <h3 className="font-heading font-bold text-dark text-base">Live Preview</h3>
+        <div className="flex items-center gap-2 mt-2">
+          <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-primary-400 to-india-green rounded-full transition-all duration-500"
+              style={{ width: `${(filledCount / QUESTIONS.length) * 100}%` }}
+            />
+          </div>
+          <span className="text-xs font-heading font-semibold text-warm-gray">{filledCount}/{QUESTIONS.length}</span>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+        {EDIT_SUMMARY_SECTIONS.map(section => {
+          const Icon = section.icon;
+          return (
+            <div key={section.title}>
+              <div className="flex items-center gap-2 mb-2.5">
+                <Icon size={14} className="text-primary-500" />
+                <h4 className="font-heading font-semibold text-xs text-primary-600 uppercase tracking-wider">{section.title}</h4>
+              </div>
+              <div className="space-y-2">
+                {section.fields.map(field => {
+                  const val = getVal(formData, field);
+                  const label = FIELD_LABELS[field] || field.split('.').pop();
+                  const isFilled = val && (typeof val !== 'string' || val.trim());
+                  const isHighlighted = lastFilledField === field;
+                  return (
+                    <div key={field} className={`flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-500 ${
+                      isHighlighted ? 'bg-primary-50 ring-1 ring-primary-300' : isFilled ? 'bg-green-50/60' : 'bg-gray-50'
+                    }`}>
+                      <span className={`text-xs font-body ${isFilled ? 'text-gray-600' : 'text-gray-400'}`}>{label}</span>
+                      {isFilled ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-body font-medium text-dark max-w-[140px] truncate">{val}</span>
+                          <CheckCircle size={12} className="text-india-green shrink-0" />
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-gray-300 font-body italic">pending</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ── Main Profile Page ── */
 export default function Profile() {
   const { user, updateProfile, linkAbha } = useAuth();
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('overview');
   const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({});
+  const [editHighlight, setEditHighlight] = useState(null);
 
   const isDoctor = user?.role === 'doctor';
   const completion = calculateProfileCompletion(user?.role, user?.profile);
@@ -356,28 +430,14 @@ export default function Profile() {
     setEditing(false);
   };
 
+  const handleEditFormChange = useCallback((formData, lastField) => {
+    setEditForm(formData);
+    setEditHighlight(lastField);
+  }, []);
+
   const renderTabContent = () => {
-    // Edit mode — show voice-based form
-    if (editing && activeTab === 'overview') {
-      if (isDoctor) {
-        return (
-          <DoctorProfileForm
-            initialData={profile}
-            onSave={handleSave}
-            mode="edit"
-            phone={user?.phone || ''}
-          />
-        );
-      }
-      return (
-        <PatientProfileForm
-          initialData={profile}
-          onSave={handleSave}
-          mode="edit"
-          phone={user?.phone || ''}
-        />
-      );
-    }
+    // Edit mode is handled separately below (two-panel)
+    if (editing && activeTab === 'overview') return null;
 
     if (isDoctor) {
       switch (activeTab) {
@@ -480,35 +540,68 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* ── Body: Vertical Tabs + Content ── */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Sidebar Tabs */}
-        <div className="w-48 shrink-0 border-r border-gray-200 py-3">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => { setActiveTab(tab.key); setEditing(false); }}
-                className={`w-full flex items-center gap-2.5 px-5 py-2.5 text-left text-sm font-heading font-medium transition-all ${
-                  isActive
-                    ? 'bg-primary-50 text-primary-700 border-l-3 border-primary-500 font-semibold'
-                    : 'text-gray-500 hover:bg-gray-50 hover:text-dark border-l-3 border-transparent'
-                }`}
-              >
-                <Icon size={16} />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+      {/* ── Body ── */}
+      {editing && activeTab === 'overview' ? (
+        /* Edit mode: two-panel layout (chat left, summary right) */
+        <div className="flex flex-1 overflow-hidden">
+          {/* LEFT: Chat-based form */}
+          <div className="flex-1 flex flex-col min-w-0 p-6 bg-gray-50/50">
+            {isDoctor ? (
+              <DoctorProfileForm
+                initialData={profile}
+                onSave={handleSave}
+                mode="edit"
+                phone={user?.phone || ''}
+              />
+            ) : (
+              <PatientProfileForm
+                initialData={profile}
+                onSave={handleSave}
+                onFormChange={handleEditFormChange}
+                mode="edit"
+                phone={user?.phone || ''}
+              />
+            )}
+          </div>
 
-        {/* Right Content Area */}
-        <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
-          {renderTabContent()}
+          {/* RIGHT: Live summary (patient only, hidden for doctor) */}
+          {!isDoctor && (
+            <div className="hidden lg:flex w-[320px] shrink-0 border-l border-gray-200 bg-white flex-col">
+              <EditSummaryPanel formData={editForm} lastFilledField={editHighlight} />
+            </div>
+          )}
         </div>
-      </div>
+      ) : (
+        /* Normal view: tabs + content */
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left Sidebar Tabs */}
+          <div className="w-48 shrink-0 border-r border-gray-200 py-3">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => { setActiveTab(tab.key); setEditing(false); }}
+                  className={`w-full flex items-center gap-2.5 px-5 py-2.5 text-left text-sm font-heading font-medium transition-all ${
+                    isActive
+                      ? 'bg-primary-50 text-primary-700 border-l-3 border-primary-500 font-semibold'
+                      : 'text-gray-500 hover:bg-gray-50 hover:text-dark border-l-3 border-transparent'
+                  }`}
+                >
+                  <Icon size={16} />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right Content Area */}
+          <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
+            {renderTabContent()}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
