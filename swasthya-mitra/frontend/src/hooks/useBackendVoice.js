@@ -164,13 +164,20 @@ export function useBackendVoice(language) {
           recognitionRef.current = null;
         }
 
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        // Prefer browser SpeechRecognition result (instant, no network delay)
+        if (browserTranscript.trim()) {
+          console.log('[useBackendVoice] Using browser STT (instant):', browserTranscript);
+          setIsListening(false);
+          setLiveTranscript('');
+          onResultRef.current?.(browserTranscript.trim());
+          return;
+        }
 
-        // Try backend STT first (more accurate)
+        // Fallback: send audio to backend STT (slower but works when browser STT unavailable)
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
         if (blob.size > 0) {
           setIsTranscribing(true);
           setLiveTranscript('');
-          backendAttempted = true;
           try {
             const transcript = await transcribeAudio(blob, language);
             setIsTranscribing(false);
@@ -180,19 +187,13 @@ export function useBackendVoice(language) {
               return;
             }
           } catch (err) {
-            console.warn('[useBackendVoice] Backend STT failed, using browser result:', err.message);
+            console.warn('[useBackendVoice] Backend STT failed:', err.message);
             setIsTranscribing(false);
           }
         }
 
-        // Fallback: use browser SpeechRecognition transcript
         setIsListening(false);
-        if (browserTranscript.trim()) {
-          console.log('[useBackendVoice] Using browser STT result:', browserTranscript);
-          onResultRef.current?.(browserTranscript.trim());
-        } else {
-          onErrorRef.current?.(backendAttempted ? 'empty' : 'no_transcript');
-        }
+        onErrorRef.current?.('no_transcript');
       };
 
       // Start browser SpeechRecognition for live transcript + fallback
@@ -216,14 +217,22 @@ export function useBackendVoice(language) {
           }
           browserTranscript = final || interim;
           setLiveTranscript(browserTranscript);
+
+          // Auto-stop when browser gets a final result (user finished speaking)
+          if (final) {
+            if (autoStopTimerRef.current) clearTimeout(autoStopTimerRef.current);
+            // Small delay to let user add more words, then auto-stop
+            autoStopTimerRef.current = setTimeout(() => {
+              if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                mediaRecorderRef.current.stop();
+              }
+            }, 800);
+          }
         };
 
         recognition.onerror = () => {};
         recognition.onend = () => {
-          // If still recording, restart (browser may stop after silence)
-          if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-            try { recognition.start(); } catch {}
-          }
+          // Don't restart — let auto-stop handle it after final result
         };
 
         try { recognition.start(); } catch {}
@@ -234,13 +243,13 @@ export function useBackendVoice(language) {
       setIsListening(true);
       setLiveTranscript('');
 
-      // Auto-stop after 10 seconds
+      // Fallback auto-stop after 6 seconds (if browser STT doesn't auto-stop first)
       if (autoStopTimerRef.current) clearTimeout(autoStopTimerRef.current);
       autoStopTimerRef.current = setTimeout(() => {
         if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
           mediaRecorderRef.current.stop();
         }
-      }, 10000);
+      }, 6000);
     } catch (err) {
       console.error('[useBackendVoice] Microphone access denied:', err);
       setIsListening(false);
